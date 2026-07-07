@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v1.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v1.9<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -144,9 +144,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3"/></svg>
       <span>Alunos</span>
     </div>
+    <div class="nav-item" onclick="goAc('ac-personais',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
+      <span>Personais</span>
+    </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v1.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v1.9<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -191,7 +195,56 @@
       </table>
     </div>
   </section>
+
+  <!-- ============ PERSONAIS ============ -->
+  <section class="view" id="v-ac-personais">
+    <div class="topbar">
+      <div><h1>Personais</h1><div class="sub">Terceirizados · repasse liberado somente sobre fatura paga</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
+          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
+          <input type="date" id="ac-pers-ini" onchange="carregarPersonaisAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+          <span>—</span>
+          <input type="date" id="ac-pers-fim" onchange="carregarPersonaisAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+        </div>
+        <button class="btn btn-primary" onclick="abrirPersonalAc(null)">+ Novo personal</button>
+      </div>
+    </div>
+    <div class="pers-grid" id="ac-pers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px"></div>
+    <div class="card">
+      <div class="card-head"><h2>Detalhe do período — faturas com personal</h2><span class="badge b-info" id="ac-pers-rep-total">—</span></div>
+      <table>
+        <thead><tr><th>Personal</th><th>Aluno</th><th>Valor do personal</th><th>Fatura</th><th>Repasse</th></tr></thead>
+        <tbody id="ac-pers-rep-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Histórico de repasses pagos</h2></div>
+      <table>
+        <thead><tr><th>Personal</th><th>Período</th><th>Valor</th><th>Pago em</th><th>Obs.</th></tr></thead>
+        <tbody id="ac-pers-hist-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
 </main>
+</div>
+
+<!-- ================= MODAL PERSONAL (academia) ================= -->
+<div class="overlay" id="m-pers-ac">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo" id="ac-mp-title">Novo personal</div><button class="close" onclick="closeModal('m-pers-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Nome completo *</label><input id="ac-mp-nome" placeholder="Ex.: Rafael Lima"></div>
+      <div><label>CREF</label><input id="ac-mp-cref" placeholder="000000-G/PR"></div>
+      <div><label>WhatsApp (com DDD)</label><input id="ac-mp-zap" placeholder="44999990000"></div>
+      <div class="full"><label>Chave PIX para repasse</label><input id="ac-mp-pix" placeholder="CPF, celular, e-mail ou aleatória"></div>
+      <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-mp-ativo" checked style="width:17px;height:17px;flex:none">Personal ativo</label></div>
+    </div>
+    <div class="modal-foot">
+      <div class="hint">O valor cobrado é definido individualmente no cadastro de cada aluno vinculado.</div>
+      <button class="btn btn-primary" onclick="salvarPersonalAc()">Salvar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ================= MODAL PRIMEIRO ACESSO (bloqueante) ================= -->
@@ -275,10 +328,11 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
-<script src="js/academias.js?v=9"></script>
+<script src="js/config.js?v=10"></script>
+<script src="js/app.js?v=10"></script>
+<script src="js/academias.js?v=10"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=2"></script>
+<script src="js/personais-academia.js?v=1"></script>
 </body>
 </html>
