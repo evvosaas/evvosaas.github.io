@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo Master · v1.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo Master · v1.2<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -101,6 +101,7 @@
       <div class="card">
         <div class="card-head"><h2>Dados da academia</h2><button class="btn btn-ghost btn-sm" onclick="abrirAcademia(acadDetalheId)">✎ Editar dados</button></div>
         <div class="info-list">
+          <div class="li"><span class="k">E-mail de login</span><span class="v" id="det-email-login">—</span></div>
           <div class="li"><span class="k">WhatsApp</span><span class="v" id="det-whatsapp">—</span></div>
           <div class="li"><span class="k">Alunos cadastrados</span><span class="v" id="det-alunos">—</span></div>
           <div class="li"><span class="k">Chave API do Asaas</span><span class="v" id="det-chave-box">—</span></div>
@@ -155,8 +156,8 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=2"></script>
-<script src="js/app.js?v=2"></script>
-<script src="js/academias.js?v=2"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/app.js?v=3"></script>
+<script src="js/academias.js?v=3"></script>
 </body>
 </html>
