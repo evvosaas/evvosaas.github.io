@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=5">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -19,8 +19,8 @@
       <div class="name">EVVO</div>
       <div class="tag">Painel Master</div>
     </div>
-    <label>E-mail</label>
-    <input id="lg-email" type="email" placeholder="seu@email.com" autocomplete="username">
+    <label>Usuário ou e-mail</label>
+    <input id="lg-email" type="text" placeholder="usuário ou e-mail" autocomplete="username">
     <label>Senha</label>
     <input id="lg-pass" type="password" placeholder="••••••••" autocomplete="current-password">
     <button class="btn-login" id="lg-btn" onclick="fazerLogin()">ENTRAR</button>
@@ -29,7 +29,7 @@
 </div>
 
 <!-- ================= APP ================= -->
-<div id="app">
+<div id="app-master">
 <aside>
   <div class="logo">
     <div class="logo-mark">V</div>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo Master · v1.2<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v1.4<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -101,6 +101,7 @@
       <div class="card">
         <div class="card-head"><h2>Dados da academia</h2><button class="btn btn-ghost btn-sm" onclick="abrirAcademia(acadDetalheId)">✎ Editar dados</button></div>
         <div class="info-list">
+          <div class="li"><span class="k">Login (usuário)</span><span class="v" id="det-usuario-login">—</span></div>
           <div class="li"><span class="k">E-mail de login</span><span class="v" id="det-email-login">—</span></div>
           <div class="li"><span class="k">WhatsApp</span><span class="v" id="det-whatsapp">—</span></div>
           <div class="li"><span class="k">Alunos cadastrados</span><span class="v" id="det-alunos">—</span></div>
@@ -127,6 +128,38 @@
 </main>
 </div>
 
+<!-- ================= PAINEL DA ACADEMIA (esqueleto S2) ================= -->
+<div id="app-academia" style="display:none">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:var(--bg)">
+    <div style="width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:38px 34px;box-shadow:0 1px 3px rgba(20,20,30,.04);text-align:center">
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--grad-135);display:flex;align-items:center;justify-content:center;font-family:'Archivo';font-weight:900;color:#fff;font-size:26px;margin:0 auto 16px">V</div>
+      <h1 style="font-size:22px;margin-bottom:6px">Bem-vindo(a) ao Evvo!</h1>
+      <div class="sub" id="ac-saudacao" style="margin-bottom:2px">—</div>
+      <div class="sub" id="ac-nome-academia" style="margin-bottom:22px;font-weight:700;color:var(--ink)">—</div>
+
+      <div id="ac-troca-senha" style="display:none;text-align:left;border-top:1px dashed var(--line);padding-top:20px;margin-top:6px">
+        <div class="form-note" style="margin:0 0 14px">Primeiro acesso: defina sua senha definitiva antes de continuar.</div>
+        <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Nova senha</label>
+        <input id="ac-nova-senha" type="password" placeholder="••••••••" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:14px">
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="trocarSenhaAcademia()">Definir senha e continuar</button>
+      </div>
+
+      <div id="ac-conteudo" style="display:none">
+        <p style="color:var(--muted);font-size:14px;line-height:1.7">
+          Seu painel completo (Alunos, Financeiro, Personais e mais) está sendo preparado
+          e chega em breve. Por enquanto, seu acesso já está ativo e seguro.
+        </p>
+        <div style="margin-top:20px;padding:14px 16px;background:var(--card2);border-radius:12px;font-size:13px;color:var(--muted)">
+          Dúvidas? Fale com o suporte Evvo pelo WhatsApp.
+        </div>
+      </div>
+
+      <button class="btn-sair" style="margin-top:24px;width:100%;justify-content:center" onclick="sair()">⎋ Sair</button>
+    </div>
+    <div style="margin-top:18px;font-size:11px;color:var(--muted)">Evvo · Desenvolvido por Jhony Beraldo</div>
+  </div>
+</div>
+
 <!-- ================= MODAL NOVA/EDITAR ACADEMIA ================= -->
 <div class="overlay" id="m-academia" onclick="if(event.target===this)closeModal('m-academia')">
   <div class="modal">
@@ -144,10 +177,11 @@
     </div>
     <div class="form-grid" id="ma-bloco-login" style="border-top:1px dashed var(--line);margin:0 26px;padding:18px 0 0">
       <div class="full" style="font-size:12.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:-4px">Acesso inicial da academia</div>
-      <div><label>E-mail de login</label><input id="ma-email" type="email" placeholder="contato@academia.com"></div>
-      <div><label>Senha inicial</label><input id="ma-senha" type="text" placeholder="Defina uma senha"></div>
+      <div><label>Login (nome simples)</label><input id="ma-usuario" placeholder="powerbody"></div>
+      <div><label>E-mail real (recuperação de senha)</label><input id="ma-email" type="email" placeholder="contato@academia.com"></div>
+      <div class="full"><label>Senha inicial</label><input id="ma-senha" type="text" placeholder="Defina uma senha temporária"></div>
     </div>
-    <div class="form-note">A academia recebe este e-mail/senha e já pode acessar. A chave Asaas é cadastrada depois, na tela de detalhe.</div>
+    <div class="form-note">A academia entra digitando só o "login" (ex.: powerbody) + a senha. No primeiro acesso, ela é obrigada a trocar a senha. A chave Asaas é cadastrada depois, na tela de detalhe.</div>
     <div class="modal-foot">
       <button class="btn btn-primary" id="ma-salvar" onclick="salvarAcademia()">Salvar</button>
     </div>
@@ -156,8 +190,8 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=3"></script>
-<script src="js/app.js?v=3"></script>
-<script src="js/academias.js?v=3"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
+<script src="js/academias.js?v=5"></script>
 </body>
 </html>
