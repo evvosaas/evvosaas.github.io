@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v1.6<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v1.7<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -128,37 +128,122 @@
 </main>
 </div>
 
-<!-- ================= PAINEL DA ACADEMIA (esqueleto S2) ================= -->
+<!-- ================= PAINEL DA ACADEMIA ================= -->
 <div id="app-academia" style="display:none">
-  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:var(--bg)">
-    <div style="width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:38px 34px;box-shadow:0 1px 3px rgba(20,20,30,.04);text-align:center">
-      <div style="width:52px;height:52px;border-radius:14px;background:var(--grad-135);display:flex;align-items:center;justify-content:center;font-family:'Archivo';font-weight:900;color:#fff;font-size:26px;margin:0 auto 16px">V</div>
-      <h1 style="font-size:22px;margin-bottom:6px">Bem-vindo(a) ao Evvo!</h1>
-      <div class="sub" id="ac-saudacao" style="margin-bottom:2px">—</div>
-      <div class="sub" id="ac-nome-academia" style="margin-bottom:22px;font-weight:700;color:var(--ink)">—</div>
-
-      <div id="ac-troca-senha" style="display:none;text-align:left;border-top:1px dashed var(--line);padding-top:20px;margin-top:6px">
-        <div class="form-note" style="margin:0 0 14px">Primeiro acesso: defina sua senha definitiva antes de continuar.</div>
-        <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Nova senha</label>
-        <input id="ac-nova-senha" type="password" placeholder="••••••••" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:14px">
-        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="trocarSenhaAcademia()">Definir senha e continuar</button>
-      </div>
-
-      <div id="ac-conteudo" style="display:none">
-        <p style="color:var(--muted);font-size:14px;line-height:1.7">
-          Seu painel completo (Alunos, Financeiro, Personais e mais) está sendo preparado
-          e chega em breve. Por enquanto, seu acesso já está ativo e seguro.
-        </p>
-        <div style="margin-top:20px;padding:14px 16px;background:var(--card2);border-radius:12px;font-size:13px;color:var(--muted)">
-          Dúvidas? Fale com o suporte Evvo pelo WhatsApp.
-        </div>
-      </div>
-
-      <button class="btn-sair" style="margin-top:24px;width:100%;justify-content:center" onclick="sair()">⎋ Sair</button>
+<aside>
+  <div class="logo">
+    <div class="logo-mark">V</div>
+    <div><div class="logo-name">EVVO</div><div class="logo-tag" id="ac-nome-sidebar">Academia</div></div>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="goAc('ac-dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span>Dashboard</span>
     </div>
-    <div style="margin-top:18px;font-size:11px;color:var(--muted)">Evvo · Desenvolvido por Jhony Beraldo</div>
+    <div class="nav-item" onclick="goAc('ac-alunos',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3"/></svg>
+      <span>Alunos</span>
+    </div>
+  </nav>
+  <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
+  <div class="side-foot">Evvo · v1.7<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+</aside>
+
+<main>
+  <!-- ============ DASHBOARD DA ACADEMIA ============ -->
+  <section class="view active" id="v-ac-dashboard">
+    <div class="topbar">
+      <div><h1 id="ac-saudacao-dash">Olá 👊</h1><div class="sub" id="ac-data-hoje">—</div></div>
+      <div class="chip"><div class="av" id="ac-user-ini">AC</div> <span id="ac-nome-academia">Academia</span></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi grad"><div class="label">Recebido no mês</div><div class="value" id="ack-bruto">—</div><div class="delta">mensalidades + personais</div></div>
+      <div class="kpi green"><div class="label">Receita da academia</div><div class="value" id="ack-academia">—</div><div class="delta">já descontado o repasse</div></div>
+      <div class="kpi blue"><div class="label">Repasse aos personais</div><div class="value" id="ack-repasse">—</div><div class="delta">sobre faturas pagas no mês</div></div>
+      <div class="kpi amber"><div class="label">Em atraso</div><div class="value" id="ack-atraso">—</div><div class="delta" id="ack-atraso-qtd">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Vencimentos próximos e atrasos</h2></div>
+      <table>
+        <thead><tr><th>Aluno</th><th>Vencimento</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody id="ac-dash-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ ALUNOS ============ -->
+  <section class="view" id="v-ac-alunos">
+    <div class="topbar">
+      <div><h1>Alunos</h1><div class="sub" id="ac-alunos-sub">—</div></div>
+      <button class="btn btn-primary" onclick="abrirAlunoAc(null)">+ Novo aluno</button>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <div class="fchip active" onclick="filtraAlunoAc('todos',this)">Todos</div>
+        <div class="fchip" onclick="filtraAlunoAc('com',this)">Com personal</div>
+        <div class="fchip" onclick="filtraAlunoAc('sem',this)">Sem personal</div>
+        <div class="fchip" onclick="filtraAlunoAc('inativos',this)">Inativos</div>
+        <div class="search"><input id="ac-alu-q" placeholder="Buscar por nome, CPF ou WhatsApp…" oninput="renderAlunosAc()"></div>
+      </div>
+      <table>
+        <thead><tr><th>Aluno</th><th>Plano</th><th>Personal</th><th>Mensalidade total</th><th>Cobrança</th><th style="text-align:right">Ações</th></tr></thead>
+        <tbody id="ac-alunos-rows"><tr><td colspan="6" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</div>
+
+<!-- ================= MODAL PRIMEIRO ACESSO (bloqueante) ================= -->
+<div class="overlay" id="m-primeiro-acesso">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Bem-vindo(a) ao Evvo!</div></div>
+    <div style="padding:22px 26px">
+      <div class="sub" id="ac-saudacao" style="margin-bottom:16px">—</div>
+      <div class="form-note" style="margin:0 0 14px">Primeiro acesso: defina sua senha definitiva antes de continuar.</div>
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Nova senha</label>
+      <input id="ac-nova-senha" type="password" placeholder="••••••••" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="trocarSenhaAcademia()">Definir senha e continuar</button>
+    </div>
   </div>
 </div>
+
+<!-- ================= MODAL ALUNO (academia) ================= -->
+<div class="overlay" id="m-aluno-ac" onclick="if(event.target===this)closeModal('m-aluno-ac')">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo" id="ac-ma-title">Novo aluno</div><button class="close" onclick="closeModal('m-aluno-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Nome completo *</label><input id="ac-ma-nome" placeholder="Ex.: Maria Souza"></div>
+      <div><label>CPF</label><input id="ac-ma-cpf" placeholder="000.000.000-00"></div>
+      <div><label>WhatsApp (com DDD)</label><input id="ac-ma-zap" placeholder="44999990000"></div>
+      <div class="full"><label>E-mail (opcional)</label><input id="ac-ma-email" placeholder="aluno@email.com"></div>
+      <div><label>Plano</label><select id="ac-ma-plano" onchange="acMaCalc()"></select></div>
+      <div><label>Dia de vencimento</label>
+        <select id="ac-ma-dia"><option>5</option><option>10</option><option>15</option><option>20</option><option>25</option></select>
+      </div>
+      <div><label>Personal (opcional)</label><select id="ac-ma-pid" onchange="acMaCalc()"></select></div>
+      <div><label>Valor do personal (R$)</label><input id="ac-ma-pval" type="number" min="0" step="0.01" value="0" oninput="acMaCalc()"></div>
+      <div><label>Forma de cobrança</label>
+        <select id="ac-ma-forma">
+          <option value="fatura">Fatura (boleto + PIX)</option>
+          <option value="cartao_recorrente">Cartão recorrente (assinatura)</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:center;gap:8px">
+        <label class="check-row" style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600"><input type="checkbox" id="ac-ma-cartao"> Permitir cartão na fatura</label>
+        <label class="check-row" style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600"><input type="checkbox" id="ac-ma-ativo" checked> Aluno ativo</label>
+      </div>
+    </div>
+    <div class="form-note" id="ac-ma-nota">—</div>
+    <div class="modal-foot">
+      <div class="hint">A geração de faturas (⚡) chega na próxima fase, junto com o módulo Financeiro.</div>
+      <button class="btn btn-primary" id="ac-ma-salvar" onclick="salvarAlunoAc()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ================= MODAL NOVA/EDITAR ACADEMIA ================= -->
 <div class="overlay" id="m-academia" onclick="if(event.target===this)closeModal('m-academia')">
@@ -190,8 +275,10 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=7"></script>
-<script src="js/app.js?v=7"></script>
-<script src="js/academias.js?v=7"></script>
+<script src="js/config.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
+<script src="js/academias.js?v=8"></script>
+<script src="js/dashboard-academia.js?v=1"></script>
+<script src="js/alunos-academia.js?v=1"></script>
 </body>
 </html>
