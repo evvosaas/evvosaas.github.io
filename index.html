@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v1.7<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v1.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -146,7 +146,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v1.7<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v1.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -211,7 +211,7 @@
 </div>
 
 <!-- ================= MODAL ALUNO (academia) ================= -->
-<div class="overlay" id="m-aluno-ac" onclick="if(event.target===this)closeModal('m-aluno-ac')">
+<div class="overlay" id="m-aluno-ac">
   <div class="modal">
     <div class="modal-head"><div class="titulo" id="ac-ma-title">Novo aluno</div><button class="close" onclick="closeModal('m-aluno-ac')">✕</button></div>
     <div class="form-grid">
@@ -231,9 +231,9 @@
           <option value="cartao_recorrente">Cartão recorrente (assinatura)</option>
         </select>
       </div>
-      <div style="display:flex;flex-direction:column;justify-content:center;gap:8px">
-        <label class="check-row" style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600"><input type="checkbox" id="ac-ma-cartao"> Permitir cartão na fatura</label>
-        <label class="check-row" style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600"><input type="checkbox" id="ac-ma-ativo" checked> Aluno ativo</label>
+      <div class="full" style="display:flex;gap:24px;padding-top:2px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-ma-cartao" style="width:17px;height:17px;flex:none">Permitir cartão na fatura</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-ma-ativo" checked style="width:17px;height:17px;flex:none">Aluno ativo</label>
       </div>
     </div>
     <div class="form-note" id="ac-ma-nota">—</div>
@@ -246,7 +246,7 @@
 
 
 <!-- ================= MODAL NOVA/EDITAR ACADEMIA ================= -->
-<div class="overlay" id="m-academia" onclick="if(event.target===this)closeModal('m-academia')">
+<div class="overlay" id="m-academia">
   <div class="modal">
     <div class="modal-head"><div class="titulo" id="ma-title">Nova academia</div><button class="close" onclick="closeModal('m-academia')">✕</button></div>
     <div class="form-grid">
@@ -275,10 +275,10 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
-<script src="js/academias.js?v=8"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
+<script src="js/academias.js?v=9"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
-<script src="js/alunos-academia.js?v=1"></script>
+<script src="js/alunos-academia.js?v=2"></script>
 </body>
 </html>
