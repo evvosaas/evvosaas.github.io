@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=14">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v2.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -152,9 +152,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>
       <span>Financeiro</span>
     </div>
+    <div class="nav-item" onclick="goAc('ac-despesas',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 1.8 2.6 5 3.2 5 1.4 5 3.3-2.2 3-5 3-5-1.1-5-3"/></svg>
+      <span>Despesas</span>
+    </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v2.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -263,7 +267,66 @@
       </table>
     </div>
   </section>
+
+  <!-- ============ DESPESAS ============ -->
+  <section class="view" id="v-ac-despesas">
+    <div class="topbar">
+      <div><h1>Despesas</h1><div class="sub">Custos fixos e variáveis · recorrentes são replicadas todo dia 1º</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
+          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
+          <input type="date" id="ac-desp-ini" onchange="carregarDespesasAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+          <span>—</span>
+          <input type="date" id="ac-desp-fim" onchange="carregarDespesasAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+        </div>
+        <button class="btn btn-primary" onclick="abrirDespesaAc(null)">+ Nova despesa</button>
+      </div>
+    </div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi red"><div class="label">Total no período</div><div class="value" id="acdk-total">—</div><div class="delta" id="acdk-qtd">—</div></div>
+      <div class="kpi amber"><div class="label">A pagar</div><div class="value" id="acdk-apagar">—</div><div class="delta">no período selecionado</div></div>
+      <div class="kpi grad"><div class="label">Resultado do período</div><div class="value" id="acdk-resultado">—</div><div class="delta">receita academia − despesas (informativo)</div></div>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <div class="fchip active" onclick="filtraDespAc('todas',this)">Todas</div>
+        <div class="fchip" onclick="filtraDespAc('apagar',this)">A pagar</div>
+        <div class="fchip" onclick="filtraDespAc('pagas',this)">Pagas</div>
+        <div class="fchip" onclick="filtraDespAc('recorrentes',this)">Recorrentes</div>
+      </div>
+      <table>
+        <thead><tr><th>Descrição</th><th>Categoria</th><th>Vencimento</th><th>Valor</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
+        <tbody id="ac-desp-rows"><tr><td colspan="6" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
 </main>
+</div>
+
+<!-- ================= MODAL DESPESA (academia) ================= -->
+<div class="overlay" id="m-despesa-ac">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo" id="ac-md-title">Nova despesa</div><button class="close" onclick="closeModal('m-despesa-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Descrição *</label><input id="ac-md-desc" placeholder="Ex.: Energia elétrica"></div>
+      <div><label>Categoria</label>
+        <select id="ac-md-cat">
+          <option>Fixa</option><option>Variável</option><option>Manutenção</option>
+          <option>Pessoal / CLT</option><option>Impostos</option><option>Outros</option>
+        </select>
+      </div>
+      <div><label>Valor (R$) *</label><input type="number" id="ac-md-valor" min="0" step="0.01" placeholder="0,00"></div>
+      <div><label>Vencimento *</label><input type="date" id="ac-md-venc"></div>
+      <div style="display:flex;align-items:end;padding-bottom:4px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-md-rec" style="width:17px;height:17px;flex:none">Repete todo mês (recorrente)</label>
+      </div>
+    </div>
+    <div class="form-note">Despesas recorrentes são lançadas automaticamente no mesmo dia de cada mês seguinte.</div>
+    <div class="modal-foot">
+      <div class="hint">O valor pode ser ajustado a cada mês editando o lançamento daquele mês.</div>
+      <button class="btn btn-primary" onclick="salvarDespesaAc()">Salvar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ================= MODAL PERSONAL (academia) ================= -->
@@ -416,12 +479,13 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=12"></script>
-<script src="js/app.js?v=12"></script>
-<script src="js/academias.js?v=12"></script>
+<script src="js/config.js?v=14"></script>
+<script src="js/app.js?v=14"></script>
+<script src="js/academias.js?v=14"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=3"></script>
 <script src="js/personais-academia.js?v=1"></script>
-<script src="js/financeiro-academia.js?v=1"></script>
+<script src="js/financeiro-academia.js?v=2"></script>
+<script src="js/despesas-academia.js?v=1"></script>
 </body>
 </html>
