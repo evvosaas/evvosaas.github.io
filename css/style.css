@@ -156,3 +156,17 @@ tbody tr:hover{background:#fafafb}
   main{margin-left:64px;padding:20px 14px}.kpis{grid-template-columns:1fr 1fr}
   .det-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}
 }
+
+/* ============ PERSONAIS (cards) ============ */
+.pers-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;position:relative;box-shadow:0 1px 3px rgba(20,20,30,.04)}
+.pers-acts{position:absolute;top:14px;right:14px;display:flex;gap:6px}
+.pers-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-right:76px}
+.pers-top .av{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex:none}
+.pers-top .nm{font-weight:700;font-size:15.5px}
+.pers-top .cref{font-size:12px;color:var(--muted);word-break:break-all}
+.pers-stats{display:flex;border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
+.pers-stats>div{flex:1}
+.pers-stats .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.pers-stats .v{font-family:'Archivo';font-weight:800;font-size:18px;margin-top:3px}
+.pers-foot{margin-top:14px;display:flex;gap:8px}
+@media(max-width:900px){.pers-grid{grid-template-columns:1fr!important}}
