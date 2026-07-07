@@ -142,6 +142,7 @@ function goAc(v, el) {
   if (v === 'ac-dashboard') carregarDashboardAc();
   if (v === 'ac-alunos')    carregarAlunosAc();
   if (v === 'ac-personais') carregarPersonaisAc();
+  if (v === 'ac-financeiro') carregarFinanceiroAc();
   window.scrollTo(0, 0);
 }
 
