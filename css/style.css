@@ -106,17 +106,19 @@ tbody tr:hover{background:#fafafb}
 /* ===== DETALHE DA ACADEMIA ===== */
 .det-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
 .info-list{padding:6px 20px 16px}
-.info-list .li{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;gap:10px}
+.info-list .li{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;gap:10px;flex-wrap:wrap}
 .info-list .li:last-child{border-bottom:none}
 .info-list .k{color:var(--muted);flex:none}
-.info-list .v{font-weight:600;text-align:right}
+.info-list .v{font-weight:600;text-align:right;flex:1;min-width:0}
 .pill-plan{background:var(--grad-135);color:#fff;border-radius:var(--radius);padding:20px;text-align:center}
 .pill-plan .l{font-size:12px;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
 .pill-plan .big{font-family:'Archivo';font-size:32px;font-weight:900;color:#fff;margin:6px 0}
 .pill-plan .s{font-size:12.5px;color:rgba(255,255,255,.75)}
 .back{color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px;display:inline-flex;gap:6px;align-items:center}
 .back:hover{color:var(--brand)}
-.chave-box{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.chave-box{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12.5px;flex-wrap:wrap;width:100%}
+.chave-revelada{width:100%;background:var(--card2);border:1px dashed var(--line);border-radius:8px;padding:9px 11px;word-break:break-all;font-size:11.5px;color:var(--ink);margin-top:6px;cursor:pointer}
+.chave-acts{display:flex;gap:6px;flex:none;margin-left:auto}
 .chave-editando input{font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;width:220px}
 
 /* ===== FILTROS/BUSCA ===== */
