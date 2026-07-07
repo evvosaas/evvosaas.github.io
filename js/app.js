@@ -143,6 +143,8 @@ function goAc(v, el) {
   if (v === 'ac-alunos')    carregarAlunosAc();
   if (v === 'ac-personais') carregarPersonaisAc();
   if (v === 'ac-financeiro') carregarFinanceiroAc();
+  if (v === 'ac-despesas')   carregarDespesasAc();
+  if (v === 'ac-socios')     carregarSociosAc();
   window.scrollTo(0, 0);
 }
 
