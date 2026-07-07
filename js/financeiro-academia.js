@@ -1,10 +1,11 @@
 /* ============================================================
    EVVO — MÓDULO FINANCEIRO (painel da academia)
-   Migrado fielmente do HealFit Gestão: período + status + busca,
-   reabrir fatura, editar vencimento, baixa manual (cancela no
-   Asaas), cancelamento, recibo com valor efetivamente pago.
+   v1.1 — KPI "Recebido no período" e a linha da fatura agora usam o
+   valor EFETIVAMENTE recebido (tabela pagamentos), não o valor de
+   face da fatura — corrige contabilização errada em baixas parciais.
    ============================================================ */
 let AC_FIN_LIST = [];
+let AC_FIN_RECEBIDO_POR_ID = {};
 let acFinFiltro = 'todos';
 let acFinFatSel = null;
 
@@ -35,6 +36,18 @@ async function carregarFinanceiroAc() {
 
   if (error) { tb.innerHTML = `<tr><td colspan="8" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
   AC_FIN_LIST = data || [];
+
+  // Para as faturas PAGAS, busca o valor EFETIVAMENTE recebido (baixa manual
+  // pode ter valor diferente do valor de face da fatura).
+  const idsPagos = AC_FIN_LIST.filter(m => m.status === 'pago').map(m => m.id);
+  AC_FIN_RECEBIDO_POR_ID = {};
+  if (idsPagos.length) {
+    const { data: pagos } = await db.from('pagamentos').select('mensalidade_id, valor').in('mensalidade_id', idsPagos);
+    (pagos || []).forEach(p => {
+      AC_FIN_RECEBIDO_POR_ID[p.mensalidade_id] = (AC_FIN_RECEBIDO_POR_ID[p.mensalidade_id] || 0) + Number(p.valor);
+    });
+  }
+
   renderFinanceiroAc();
 }
 
@@ -51,7 +64,10 @@ function renderFinanceiroAc() {
     .filter(m => (m.aluno || '').toLowerCase().includes(q))
     .filter(m => acFinFiltro === 'todos' ? m.status !== 'cancelado' : m.status === acFinFiltro);
 
-  const soma = st => AC_FIN_LIST.filter(m => m.status === st).reduce((s, m) => s + Number(m.valor_total), 0);
+  const soma = st => AC_FIN_LIST.filter(m => m.status === st).reduce((s, m) => {
+    if (st === 'pago') return s + Number(AC_FIN_RECEBIDO_POR_ID[m.id] ?? m.valor_total);
+    return s + Number(m.valor_total);
+  }, 0);
   document.getElementById('acfk-recebido').textContent = brl(soma('pago'));
   document.getElementById('acfk-areceber').textContent = brl(soma('pendente'));
   document.getElementById('acfk-atrasado').textContent = brl(soma('atrasado'));
@@ -83,7 +99,10 @@ function renderFinanceiroAc() {
       <td>${Number(m.valor_personal) > 0 ? brl(m.valor_personal) + `<div class="loc">${esc(m.personal || '')}</div>` : '—'}</td>
       <td><b>${brl(m.valor_total)}</b></td>
       <td>${m.forma_pagamento ? esc(m.forma_pagamento).toUpperCase() : '—'}</td>
-      <td>${stBadgeAc(m.status)}${m.pago_em ? `<div class="loc">${fmt(String(m.pago_em).slice(0,10))}</div>` : ''}</td>
+      <td>${stBadgeAc(m.status)}${m.pago_em ? `<div class="loc">${fmt(String(m.pago_em).slice(0,10))}</div>` : ''}${
+        (m.status === 'pago' && AC_FIN_RECEBIDO_POR_ID[m.id] !== undefined && Number(AC_FIN_RECEBIDO_POR_ID[m.id]) !== Number(m.valor_total))
+          ? `<div class="loc" style="color:var(--warn);font-weight:700">recebido: ${brl(AC_FIN_RECEBIDO_POR_ID[m.id])}</div>` : ''
+      }</td>
       <td><div class="acts">${acoes.join('')}</div></td>
     </tr>`;
   }).join('');
