@@ -145,6 +145,7 @@ function goAc(v, el) {
   if (v === 'ac-financeiro') carregarFinanceiroAc();
   if (v === 'ac-despesas')   carregarDespesasAc();
   if (v === 'ac-socios')     carregarSociosAc();
+  if (v === 'ac-config')     carregarConfigAc();
   window.scrollTo(0, 0);
 }
 
