@@ -170,3 +170,16 @@ tbody tr:hover{background:#fafafb}
 .pers-stats .v{font-family:'Archivo';font-weight:800;font-size:18px;margin-top:3px}
 .pers-foot{margin-top:14px;display:flex;gap:8px}
 @media(max-width:900px){.pers-grid{grid-template-columns:1fr!important}}
+
+/* ============ PARTICIPAÇÃO ============ */
+.socio-bar{height:14px;border-radius:99px;overflow:hidden;display:flex;margin:16px 20px 4px}
+.socio-bar div{height:100%}
+.socio-legend{display:flex;gap:18px;padding:10px 20px 18px;flex-wrap:wrap;font-size:13px;font-weight:600}
+.socio-legend .sw{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:6px}
+.calc-box{margin:18px 20px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.calc-box .row{display:flex;justify-content:space-between;padding:11px 16px;font-size:13.5px;border-bottom:1px solid var(--line)}
+.calc-box .row .lbl{color:var(--muted)}
+.calc-box .row.neg span:last-child{color:var(--late)}
+.calc-box .total{background:var(--card2);font-weight:800;border-bottom:none}
+.calc-box .total span:last-child{font-family:'Archivo';font-size:17px;color:var(--ink)}
+.info-box{margin:0 20px 18px;padding:11px 16px;background:var(--card2);border:1px dashed var(--line);border-radius:10px;font-size:12.5px;color:var(--muted)}
