@@ -83,7 +83,7 @@ function renderAlunosAc() {
       <td><b>${brl(total)}</b>${a.valor_personal > 0 ? `<div class="loc">${brl(a.valor_plano)} + ${brl(a.valor_personal)} personal</div>` : ''}</td>
       <td>${situacao}</td>
       <td><div class="acts">
-        <button class="icon-btn" title="Gerar fatura (em breve)" disabled style="opacity:.4;cursor:not-allowed">⚡</button>
+        <button class="icon-btn" title="Gerar fatura" onclick="gerarFaturaAc(${a.id})">⚡</button>
         <button class="icon-btn" title="Editar" onclick="abrirAlunoAc(${a.id})">✎</button>
         <button class="icon-btn del" title="Excluir" onclick="excluirAlunoAc(${a.id})">🗑</button>
       </div></td>
@@ -215,4 +215,71 @@ function validarCPFAc(cpf) {
   for (let i = 0; i < 10; i++) s += Number(cpf[i]) * (11 - i);
   let d2 = 11 - (s % 11); if (d2 >= 10) d2 = 0;
   return d2 === Number(cpf[10]);
+}
+
+/* ---------------- FATURA IMEDIATA (Edge Function) ---------------- */
+async function gerarFaturaAc(id) {
+  const a = AC_ALUNOS.find(x => x.id === id);
+  if (!a) return;
+  if (a.ativo === false) { toast('Aluno inativo — reative antes de gerar fatura.'); return; }
+  if (!a.cpf) { toast('Cadastre o CPF do aluno antes de gerar a fatura (exigência do banco emissor).'); return; }
+
+  // Se já existe fatura em aberto (pendente/atrasada), REABRE o modal dela
+  const { data: aberta } = await db.from('mensalidades')
+    .select('*')
+    .eq('aluno_id', id)
+    .in('status', ['pendente', 'atrasado'])
+    .order('vencimento', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (aberta) { mostrarFaturaAc(a, aberta); return; }
+
+  if (!confirm(`Gerar a fatura do mês para ${a.nome}?`)) return;
+
+  toast('Gerando fatura no Asaas…');
+  const { data, error } = await db.functions.invoke('criar-cobranca-avulsa', {
+    body: { aluno_id: id },
+  });
+
+  if (error) {
+    let msg = error.message;
+    try { const body = await error.context?.json?.(); if (body?.erro) msg = body.erro; } catch (_) {}
+    toast('Não gerou: ' + msg);
+    return;
+  }
+  if (data?.erro) { toast('Não gerou: ' + data.erro); return; }
+
+  mostrarFaturaAc(a, data.mensalidade);
+  carregarAlunosAc();
+}
+
+/* ---------------- RESULTADO: PDF / PIX / WHATSAPP ---------------- */
+function mostrarFaturaAc(aluno, m) {
+  document.getElementById('ac-mf-aluno').textContent = aluno.nome;
+  const statusTxt = m.status === 'atrasado' ? ' · EM ATRASO' : '';
+  document.getElementById('ac-mf-info').textContent =
+    `${brl(m.valor_total ?? (Number(m.valor_academia) + Number(m.valor_personal)))} · vencimento ${fmt(m.vencimento)}${statusTxt}`;
+
+  const links = document.getElementById('ac-mf-links');
+  const zap = (aluno.whatsapp || '').replace(/\D/g, '');
+  const msg = encodeURIComponent(
+    `*${document.getElementById('ac-nome-academia').textContent.toUpperCase()} - FATURA*\n\n` +
+    `Olá, ${aluno.nome.split(' ')[0]}!\n` +
+    `Sua fatura já está disponível:\n\n` +
+    `Valor: *${brl(m.valor_total ?? (Number(m.valor_academia) + Number(m.valor_personal)))}*\n` +
+    `Vencimento: ${fmt(m.vencimento)}\n\n` +
+    `Pague por boleto ou PIX no link:\n${m.url_fatura}\n\n` +
+    `Qualquer dúvida é só chamar!`
+  );
+
+  links.innerHTML = `
+    ${m.url_fatura ? `<a class="btn btn-primary" href="${m.url_fatura}" target="_blank">🔗 Abrir fatura</a>` : ''}
+    ${zap ? `<a class="btn btn-primary" style="background:var(--ok)" href="https://wa.me/55${zap}?text=${msg}" target="_blank">💬 Enviar no WhatsApp do aluno</a>`
+          : '<div class="hint">Aluno sem WhatsApp cadastrado.</div>'}
+    ${(m.url_boleto || m.url_fatura) ? `<a class="btn btn-ghost" href="${m.url_boleto || m.url_fatura}" target="_blank">📄 PDF do boleto</a>` : ''}
+    ${m.pix_copia_cola ? `<div class="hint" style="max-width:none">PIX copia-e-cola (clique para copiar):</div>
+      <div class="linha-copiavel" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:11px 13px;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>toast('PIX copiado ✓'))">${esc(m.pix_copia_cola)}</div>` : ''}
+  `;
+  openModal('m-fatura-ac');
 }
