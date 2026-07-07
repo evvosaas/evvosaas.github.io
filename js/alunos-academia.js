@@ -1,4 +1,5 @@
 /* ============================================================
+   v1.1 — busca por CPF/WhatsApp ignora pontuação (compara só números)
    EVVO — MÓDULO ALUNOS (painel da academia)
    Migrado fielmente do HealFit Gestão (CRUD, validação de CPF,
    filtros, busca, cálculo de mensalidade). A geração de fatura
@@ -43,9 +44,14 @@ function filtraAlunoAc(f, el) {
 }
 
 function renderAlunosAc() {
-  const q = (document.getElementById('ac-alu-q').value || '').toLowerCase();
+  const qTexto = (document.getElementById('ac-alu-q').value || '').toLowerCase();
+  const qNumeros = qTexto.replace(/\D/g, ''); // versão só com números, para bater CPF/WhatsApp sem pontuação
   const lista = AC_ALUNOS
-    .filter(a => (a.nome || '').toLowerCase().includes(q) || (a.cpf || '').includes(q) || (a.whatsapp || '').includes(q))
+    .filter(a =>
+      (a.nome || '').toLowerCase().includes(qTexto) ||
+      (qNumeros && (a.cpf || '').replace(/\D/g, '').includes(qNumeros)) ||
+      (qNumeros && (a.whatsapp || '').replace(/\D/g, '').includes(qNumeros))
+    )
     .filter(a => acAluFiltro === 'todos' ? true
       : acAluFiltro === 'com' ? a.personal_id != null
       : acAluFiltro === 'sem' ? a.personal_id == null
