@@ -23,36 +23,40 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 /* ---------------- LOGIN / SESSÃO ---------------- */
+// Login único: aceita e-mail (contém "@") ou um nome de usuário simples
+// (ex: "powerbody"), que é resolvido para o e-mail real via RPC pública
+// antes de autenticar. Depois do login, o papel (master/academia) decide
+// para qual painel a pessoa vai — mesma URL para todo mundo.
 async function fazerLogin() {
   const btn = document.getElementById('lg-btn');
   const erro = document.getElementById('lg-erro');
   erro.style.display = 'none';
   btn.disabled = true; btn.textContent = 'ENTRANDO…';
 
-  const email = document.getElementById('lg-email').value.trim();
+  const digitado = document.getElementById('lg-email').value.trim();
   const pass = document.getElementById('lg-pass').value;
-  if (!email || !pass) {
-    erro.textContent = 'Preencha e-mail e senha.'; erro.style.display = 'block';
+  if (!digitado || !pass) {
+    erro.textContent = 'Preencha usuário/e-mail e senha.'; erro.style.display = 'block';
     btn.disabled = false; btn.textContent = 'ENTRAR'; return;
   }
+
+  let email = digitado;
+  if (!digitado.includes('@')) {
+    const { data: emailResolvido, error: eResolve } = await db.rpc('fn_resolver_login', { p_usuario: digitado });
+    if (eResolve || !emailResolvido) {
+      erro.textContent = 'Usuário não encontrado.'; erro.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'ENTRAR'; return;
+    }
+    email = emailResolvido;
+  }
+
   const { error } = await db.auth.signInWithPassword({ email, password: pass });
   if (error) {
-    erro.textContent = 'E-mail ou senha incorretos.'; erro.style.display = 'block';
+    erro.textContent = 'Usuário/e-mail ou senha incorretos.'; erro.style.display = 'block';
     btn.disabled = false; btn.textContent = 'ENTRAR'; return;
   }
 
-  // Confirma que é MASTER antes de deixar entrar (uma academia não deveria
-  // conseguir logar aqui, mas essa é a segunda trava, depois da RLS)
-  const { data: { user } } = await db.auth.getUser();
-  const { data: perfil } = await db.from('perfis').select('role, nome').eq('id', user.id).maybeSingle();
-  if (!perfil || perfil.role !== 'master') {
-    erro.textContent = 'Este acesso é restrito ao administrador do Evvo.'; erro.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'ENTRAR';
-    await db.auth.signOut();
-    return;
-  }
-
-  entrar(perfil.nome);
+  await resolverEntrada();
 }
 
 async function sair() {
@@ -63,21 +67,67 @@ async function sair() {
 async function boot() {
   document.getElementById('lg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
   const { data: { session } } = await db.auth.getSession();
-  if (session) {
-    const { data: perfil } = await db.from('perfis').select('role, nome').eq('id', session.user.id).maybeSingle();
-    if (perfil && perfil.role === 'master') { entrar(perfil.nome); return; }
+  if (session) await resolverEntrada();
+}
+
+// Depois de autenticado, decide o painel pelo papel do usuário
+async function resolverEntrada() {
+  const { data: { user } } = await db.auth.getUser();
+  const { data: perfil } = await db.from('perfis')
+    .select('role, nome, academia_id, precisa_trocar_senha').eq('id', user.id).maybeSingle();
+
+  if (!perfil) {
+    document.getElementById('lg-erro').textContent = 'Usuário sem perfil configurado. Fale com o suporte.';
+    document.getElementById('lg-erro').style.display = 'block';
     await db.auth.signOut();
+    return;
+  }
+
+  if (perfil.role === 'master') { entrarMaster(perfil.nome); return; }
+  entrarAcademia(perfil);
+}
+
+function entrarMaster(nome) {
+  document.getElementById('tela-login').style.display = 'none';
+  document.getElementById('app-master').style.display = 'block';
+  document.getElementById('user-nome').textContent = nome || 'Master';
+  document.getElementById('user-ini').textContent = ini(nome);
+  carregarVisaoGeral();
+}
+
+async function entrarAcademia(perfil) {
+  document.getElementById('tela-login').style.display = 'none';
+  document.getElementById('app-academia').style.display = 'block';
+
+  const { data: academia } = await db.from('academias').select('nome').eq('id', perfil.academia_id).maybeSingle();
+  document.getElementById('ac-nome-academia').textContent = academia?.nome || 'sua academia';
+  document.getElementById('ac-saudacao').textContent = `Olá, ${perfil.nome || 'bem-vindo(a)'}!`;
+
+  // Primeiro acesso: obriga a trocar a senha antes de liberar o conteúdo
+  if (perfil.precisa_trocar_senha) {
+    document.getElementById('ac-troca-senha').style.display = 'block';
+    document.getElementById('ac-conteudo').style.display = 'none';
+  } else {
+    document.getElementById('ac-troca-senha').style.display = 'none';
+    document.getElementById('ac-conteudo').style.display = 'block';
   }
 }
 
-function entrar(nome) {
-  document.getElementById('tela-login').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+async function trocarSenhaAcademia() {
+  const nova = document.getElementById('ac-nova-senha').value;
+  if (!nova || nova.length < 6) { toast('A senha precisa ter pelo menos 6 caracteres.'); return; }
 
-  document.getElementById('user-nome').textContent = nome || 'Master';
-  document.getElementById('user-ini').textContent = ini(nome);
+  const { error: e1 } = await db.auth.updateUser({ password: nova });
+  if (e1) { toast('Erro ao trocar senha: ' + e1.message); return; }
 
-  carregarVisaoGeral();
+  const { data: { user } } = await db.auth.getUser();
+  const { error: e2 } = await db.from('perfis').update({ precisa_trocar_senha: false }).eq('id', user.id);
+  if (e2) { toast('Senha trocada, mas houve um erro ao liberar o acesso: ' + e2.message); return; }
+
+  toast('Senha definida ✓');
+  document.getElementById('ac-nova-senha').value = '';
+  document.getElementById('ac-troca-senha').style.display = 'none';
+  document.getElementById('ac-conteudo').style.display = 'block';
 }
 
 /* ---------------- NAVEGAÇÃO ---------------- */
