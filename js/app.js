@@ -95,22 +95,26 @@ function entrarMaster(nome) {
   carregarVisaoGeral();
 }
 
+let MEU_ACADEMIA_ID = null;
+
 async function entrarAcademia(perfil) {
   document.getElementById('tela-login').style.display = 'none';
   document.getElementById('app-academia').style.display = 'block';
+  MEU_ACADEMIA_ID = perfil.academia_id;
 
   const { data: academia } = await db.from('academias').select('nome').eq('id', perfil.academia_id).maybeSingle();
   document.getElementById('ac-nome-academia').textContent = academia?.nome || 'sua academia';
+  document.getElementById('ac-nome-sidebar').textContent = academia?.nome || 'Academia';
+  document.getElementById('ac-user-ini').textContent = ini(academia?.nome);
+  document.getElementById('ac-saudacao-dash').textContent = `Olá, ${academia?.nome || 'tudo bem'}! 👊`;
+  document.getElementById('ac-data-hoje').textContent =
+    new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   document.getElementById('ac-saudacao').textContent = `Olá, ${perfil.nome || 'bem-vindo(a)'}!`;
 
-  // Primeiro acesso: obriga a trocar a senha antes de liberar o conteúdo
-  if (perfil.precisa_trocar_senha) {
-    document.getElementById('ac-troca-senha').style.display = 'block';
-    document.getElementById('ac-conteudo').style.display = 'none';
-  } else {
-    document.getElementById('ac-troca-senha').style.display = 'none';
-    document.getElementById('ac-conteudo').style.display = 'block';
-  }
+  // Primeiro acesso: bloqueia com modal até trocar a senha
+  if (perfil.precisa_trocar_senha) { openModal('m-primeiro-acesso'); }
+
+  carregarDashboardAc();
 }
 
 async function trocarSenhaAcademia() {
@@ -125,8 +129,19 @@ async function trocarSenhaAcademia() {
 
   toast('Senha definida ✓');
   document.getElementById('ac-nova-senha').value = '';
-  document.getElementById('ac-troca-senha').style.display = 'none';
-  document.getElementById('ac-conteudo').style.display = 'block';
+  closeModal('m-primeiro-acesso');
+}
+
+/* ---------------- NAVEGAÇÃO — PAINEL DA ACADEMIA ---------------- */
+function goAc(v, el) {
+  document.querySelectorAll('#app-academia .view').forEach(x => x.classList.remove('active'));
+  document.getElementById('v-' + v).classList.add('active');
+  document.querySelectorAll('#app-academia .nav-item').forEach(x => x.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  if (v === 'ac-dashboard') carregarDashboardAc();
+  if (v === 'ac-alunos')    carregarAlunosAc();
+  window.scrollTo(0, 0);
 }
 
 /* ---------------- NAVEGAÇÃO ---------------- */
