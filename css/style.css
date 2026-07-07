@@ -31,7 +31,8 @@ h1,h2,h3{font-family:'Archivo',sans-serif}
 .login-erro{margin-top:14px;padding:11px 14px;background:var(--late-bg);color:var(--late);border-radius:10px;font-size:13px;font-weight:600;display:none;text-align:center}
 
 /* ===== APP SHELL ===== */
-#app{display:none}
+#app-master{display:none}
+#app-academia{display:none}
 aside{width:230px;background:var(--sidebar);color:var(--sidebar-ink);display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:20}
 .logo{padding:22px 20px 16px;display:flex;align-items:center;gap:11px}
 .logo-mark{width:38px;height:38px;border-radius:11px;background:var(--grad-135);display:flex;align-items:center;justify-content:center;font-family:'Archivo';font-weight:900;color:#fff;font-size:19px}
