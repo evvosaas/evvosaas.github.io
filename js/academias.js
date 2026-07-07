@@ -1,6 +1,6 @@
 /* ============================================================
    EVVO MASTER — MÓDULO ACADEMIAS
-   v1.1 — corrige overflow ao revelar chave longa (chave em bloco próprio, quebra linha, botão copiar)
+   v1.2 — grava e exibe o e-mail de login da academia no detalhe
    ============================================================ */
 let ACADEMIAS = [];
 let acadEditId = null;
@@ -142,6 +142,7 @@ async function salvarAcademia() {
   }
 
   registro.status = 'configurando';
+  registro.email_login = email;
   const { data: academia, error: e1 } = await db.from('academias').insert(registro).select().single();
   if (e1) { btn.disabled = false; toast('Erro ao criar academia: ' + e1.message); return; }
 
@@ -173,6 +174,7 @@ async function abrirDetalhe(id) {
   document.getElementById('det-status').innerHTML = statusBadge(a.status);
 
   document.getElementById('det-whatsapp').textContent = a.whatsapp || '—';
+  document.getElementById('det-email-login').textContent = a.email_login || '—';
   document.getElementById('det-alunos').textContent = '—';
   document.getElementById('det-criado').textContent = fmt(String(a.created_at).slice(0, 10));
 
