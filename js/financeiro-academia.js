@@ -6,6 +6,7 @@
    ============================================================ */
 let AC_FIN_LIST = [];
 let AC_FIN_RECEBIDO_POR_ID = {};
+let AC_FIN_OBS_POR_ID = {};
 let acFinFiltro = 'todos';
 let acFinFatSel = null;
 
@@ -41,10 +42,17 @@ async function carregarFinanceiroAc() {
   // pode ter valor diferente do valor de face da fatura).
   const idsPagos = AC_FIN_LIST.filter(m => m.status === 'pago').map(m => m.id);
   AC_FIN_RECEBIDO_POR_ID = {};
+  AC_FIN_OBS_POR_ID = {};
   if (idsPagos.length) {
-    const { data: pagos } = await db.from('pagamentos').select('mensalidade_id, valor').in('mensalidade_id', idsPagos);
+    const { data: pagos } = await db.from('pagamentos')
+      .select('mensalidade_id, valor, payload')
+      .in('mensalidade_id', idsPagos)
+      .order('pago_em', { ascending: false });
     (pagos || []).forEach(p => {
       AC_FIN_RECEBIDO_POR_ID[p.mensalidade_id] = (AC_FIN_RECEBIDO_POR_ID[p.mensalidade_id] || 0) + Number(p.valor);
+      // guarda a observação da baixa manual mais recente daquela fatura (se houver)
+      const obs = p.payload?.observacao;
+      if (obs && !AC_FIN_OBS_POR_ID[p.mensalidade_id]) AC_FIN_OBS_POR_ID[p.mensalidade_id] = obs;
     });
   }
 
@@ -101,7 +109,9 @@ function renderFinanceiroAc() {
       <td>${m.forma_pagamento ? esc(m.forma_pagamento).toUpperCase() : '—'}</td>
       <td>${stBadgeAc(m.status)}${m.pago_em ? `<div class="loc">${fmt(String(m.pago_em).slice(0,10))}</div>` : ''}${
         (m.status === 'pago' && AC_FIN_RECEBIDO_POR_ID[m.id] !== undefined && Number(AC_FIN_RECEBIDO_POR_ID[m.id]) !== Number(m.valor_total))
-          ? `<div class="loc" style="color:var(--warn);font-weight:700">recebido: ${brl(AC_FIN_RECEBIDO_POR_ID[m.id])}</div>` : ''
+          ? `<div class="loc" style="color:var(--warn);font-weight:700">recebido: ${brl(AC_FIN_RECEBIDO_POR_ID[m.id])}</div>
+             ${AC_FIN_OBS_POR_ID[m.id] ? `<div class="loc" style="color:var(--muted);font-style:italic" title="Observação da baixa manual">📝 ${esc(AC_FIN_OBS_POR_ID[m.id])}</div>` : ''}`
+          : ''
       }</td>
       <td><div class="acts">${acoes.join('')}</div></td>
     </tr>`;
