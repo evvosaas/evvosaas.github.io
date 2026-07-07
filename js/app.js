@@ -120,8 +120,7 @@ async function trocarSenhaAcademia() {
   const { error: e1 } = await db.auth.updateUser({ password: nova });
   if (e1) { toast('Erro ao trocar senha: ' + e1.message); return; }
 
-  const { data: { user } } = await db.auth.getUser();
-  const { error: e2 } = await db.from('perfis').update({ precisa_trocar_senha: false }).eq('id', user.id);
+  const { error: e2 } = await db.rpc('fn_marcar_senha_trocada');
   if (e2) { toast('Senha trocada, mas houve um erro ao liberar o acesso: ' + e2.message); return; }
 
   toast('Senha definida ✓');
