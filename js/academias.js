@@ -99,6 +99,7 @@ function abrirAcademia(id) {
   if (a) { blocoLogin.style.display = 'none'; }
   else {
     blocoLogin.style.display = 'block';
+    document.getElementById('ma-usuario').value = '';
     document.getElementById('ma-email').value = '';
     document.getElementById('ma-senha').value = '';
   }
@@ -132,19 +133,25 @@ async function salvarAcademia() {
     return;
   }
 
-  // criação: precisa de e-mail + senha para o login (Supabase Auth)
+  // criação: precisa de login simples + e-mail real + senha (Supabase Auth)
+  const usuario = document.getElementById('ma-usuario').value.trim().toLowerCase().replace(/\s+/g, '');
   const email = document.getElementById('ma-email').value.trim();
   const senha = document.getElementById('ma-senha').value;
-  if (!email || !senha) {
+  if (!usuario || !email || !senha) {
     btn.disabled = false;
-    toast('Informe o e-mail e a senha inicial de acesso da academia.');
+    toast('Informe o login simples, o e-mail real e a senha inicial da academia.');
     return;
   }
 
   registro.status = 'configurando';
+  registro.usuario_login = usuario;
   registro.email_login = email;
   const { data: academia, error: e1 } = await db.from('academias').insert(registro).select().single();
-  if (e1) { btn.disabled = false; toast('Erro ao criar academia: ' + e1.message); return; }
+  if (e1) {
+    btn.disabled = false;
+    toast(e1.code === '23505' ? 'Esse login já está em uso — escolha outro nome.' : 'Erro ao criar academia: ' + e1.message);
+    return;
+  }
 
   // cria o login da academia via Edge Function (precisa de privilégio admin,
   // por isso não dá para criar auth.users direto do navegador)
@@ -174,6 +181,7 @@ async function abrirDetalhe(id) {
   document.getElementById('det-status').innerHTML = statusBadge(a.status);
 
   document.getElementById('det-whatsapp').textContent = a.whatsapp || '—';
+  document.getElementById('det-usuario-login').textContent = a.usuario_login || '—';
   document.getElementById('det-email-login').textContent = a.email_login || '—';
   document.getElementById('det-alunos').textContent = '—';
   document.getElementById('det-criado').textContent = fmt(String(a.created_at).slice(0, 10));
