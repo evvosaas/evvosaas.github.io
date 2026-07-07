@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evvo Master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="tela-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="mark">V</div>
+      <div class="name">EVVO</div>
+      <div class="tag">Painel Master</div>
+    </div>
+    <label>E-mail</label>
+    <input id="lg-email" type="email" placeholder="seu@email.com" autocomplete="username">
+    <label>Senha</label>
+    <input id="lg-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn-login" id="lg-btn" onclick="fazerLogin()">ENTRAR</button>
+    <div class="login-erro" id="lg-erro"></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+<aside>
+  <div class="logo">
+    <div class="logo-mark">V</div>
+    <div><div class="logo-name">EVVO</div><div class="logo-tag">Master</div></div>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="go('home',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span>Visão geral</span>
+    </div>
+    <div class="nav-item" onclick="go('academias',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
+      <span>Academias</span>
+    </div>
+  </nav>
+  <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
+  <div class="side-foot">Evvo Master · v1.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+</aside>
+
+<main>
+  <!-- ============ VISÃO GERAL ============ -->
+  <section class="view active" id="v-home">
+    <div class="topbar">
+      <div><h1>Visão geral</h1><div class="sub" id="data-hoje">—</div></div>
+      <div class="chip"><div class="av" id="user-ini">JB</div> <span id="user-nome">Master</span></div>
+    </div>
+    <div class="kpis">
+      <div class="kpi green"><div class="label">Academias ativas</div><div class="value" id="h-academias-ativas">—</div><div class="delta">clientes do Evvo</div></div>
+      <div class="kpi grad"><div class="label">Receita mensal (MRR)</div><div class="value" id="h-mrr">—</div><div class="delta">soma das mensalidades ativas</div></div>
+      <div class="kpi blue"><div class="label">Alunos na plataforma</div><div class="value" id="h-alunos">—</div><div class="delta">somando todas as academias</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Academias que precisam de atenção</h2></div>
+      <table>
+        <thead><tr><th>Academia</th><th>Plano</th><th>Vencimento</th><th>Status</th></tr></thead>
+        <tbody id="home-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ ACADEMIAS ============ -->
+  <section class="view" id="v-academias">
+    <div class="topbar">
+      <div><h1>Academias</h1><div class="sub" id="acad-sub">—</div></div>
+      <button class="btn btn-primary" onclick="abrirAcademia(null)">+ Nova academia</button>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <div class="search" style="margin-left:0;max-width:320px"><input id="acad-q" placeholder="Buscar por nome…" oninput="renderAcademias()"></div>
+      </div>
+      <table>
+        <thead><tr><th>Academia</th><th>Responsável</th><th>Plano Evvo</th><th>Asaas</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
+        <tbody id="acad-rows"><tr><td colspan="6" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ DETALHE DA ACADEMIA ============ -->
+  <section class="view" id="v-detalhe">
+    <span class="back" onclick="go('academias',null)">← voltar para academias</span>
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="acad-cell"><div class="av" id="det-avatar" style="background:#ff5a2b;width:52px;height:52px;border-radius:14px;font-size:17px">—</div></div>
+        <div><h1 id="det-nome" style="font-size:24px">—</h1><div class="sub" id="det-loc">—</div></div>
+      </div>
+      <span id="det-status">—</span>
+    </div>
+    <div class="det-grid">
+      <div class="card">
+        <div class="card-head"><h2>Dados da academia</h2><button class="btn btn-ghost btn-sm" onclick="abrirAcademia(acadDetalheId)">✎ Editar dados</button></div>
+        <div class="info-list">
+          <div class="li"><span class="k">WhatsApp</span><span class="v" id="det-whatsapp">—</span></div>
+          <div class="li"><span class="k">Alunos cadastrados</span><span class="v" id="det-alunos">—</span></div>
+          <div class="li"><span class="k">Chave API do Asaas</span><span class="v" id="det-chave-box">—</span></div>
+          <div class="li"><span class="k">Cliente desde</span><span class="v" id="det-criado">—</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="pill-plan">
+          <div class="l">Plano Evvo desta academia</div>
+          <div class="big" id="det-plano-valor">—</div>
+          <div class="s"><span id="det-plano-nome">—</span> · vence dia <span id="det-plano-dia">—</span></div>
+        </div>
+        <div class="card" style="margin-top:18px">
+          <div class="card-head"><h2>Ações</h2></div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-ghost" style="justify-content:center" onclick="resetarSenhaAcademia()">🔑 Enviar redefinição de senha</button>
+            <button class="btn btn-danger" style="justify-content:center" onclick="toggleStatusAcademia()">⏸ Ativar/Inativar academia</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<!-- ================= MODAL NOVA/EDITAR ACADEMIA ================= -->
+<div class="overlay" id="m-academia" onclick="if(event.target===this)closeModal('m-academia')">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo" id="ma-title">Nova academia</div><button class="close" onclick="closeModal('m-academia')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Nome da academia *</label><input id="ma-nome" placeholder="Ex.: Power Body"></div>
+      <div><label>Cidade / UF</label><input id="ma-cidade" placeholder="Cascavel-PR"></div>
+      <div><label>Responsável</label><input id="ma-resp" placeholder="Nome do dono"></div>
+      <div><label>WhatsApp</label><input id="ma-zap" placeholder="44999990000"></div>
+      <div><label>Plano Evvo</label>
+        <select id="ma-plano"><option value="Básico">Básico</option><option value="Profissional">Profissional</option></select>
+      </div>
+      <div><label>Valor mensal (R$)</label><input type="number" id="ma-valor" min="0" step="0.01"></div>
+      <div><label>Dia de vencimento</label><input type="number" id="ma-dia" min="1" max="28"></div>
+    </div>
+    <div class="form-grid" id="ma-bloco-login" style="border-top:1px dashed var(--line);margin:0 26px;padding:18px 0 0">
+      <div class="full" style="font-size:12.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:-4px">Acesso inicial da academia</div>
+      <div><label>E-mail de login</label><input id="ma-email" type="email" placeholder="contato@academia.com"></div>
+      <div><label>Senha inicial</label><input id="ma-senha" type="text" placeholder="Defina uma senha"></div>
+    </div>
+    <div class="form-note">A academia recebe este e-mail/senha e já pode acessar. A chave Asaas é cadastrada depois, na tela de detalhe.</div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" id="ma-salvar" onclick="salvarAcademia()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
+
+<script src="js/config.js?v=1"></script>
+<script src="js/app.js?v=1"></script>
+<script src="js/academias.js?v=1"></script>
+</body>
+</html>
