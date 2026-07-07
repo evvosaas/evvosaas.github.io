@@ -1,7 +1,6 @@
 /* ============================================================
    EVVO MASTER — MÓDULO ACADEMIAS
-   v1.0 — visão geral, listagem, CRUD, detalhe com chave Asaas
-   mascarada (editável pelo master), reset de senha da academia
+   v1.1 — corrige overflow ao revelar chave longa (chave em bloco próprio, quebra linha, botão copiar)
    ============================================================ */
 let ACADEMIAS = [];
 let acadEditId = null;
@@ -203,14 +202,17 @@ function renderChaveAsaas(a) {
   box.innerHTML = tem ? `
     <div class="chave-box">
       <span id="chave-texto">${mascarada}</span>
-      <button class="icon-btn" title="Revelar" onclick="revelarChave(${a.id})">👁</button>
-      <button class="icon-btn" title="Editar" onclick="editarChave()">✎</button>
-      <button class="icon-btn del" title="Remover" onclick="removerChave(${a.id})">🗑</button>
+      <div class="chave-acts">
+        <button class="icon-btn" title="Revelar" onclick="revelarChave(${a.id})">👁</button>
+        <button class="icon-btn" title="Editar" onclick="editarChave()">✎</button>
+        <button class="icon-btn del" title="Remover" onclick="removerChave(${a.id})">🗑</button>
+      </div>
+      <div id="chave-revelada-box"></div>
     </div>${logInfo}
   ` : `
     <div class="chave-box">
       <span style="color:var(--muted)">Nenhuma chave cadastrada</span>
-      <button class="icon-btn" title="Adicionar" onclick="editarChave()">+</button>
+      <div class="chave-acts"><button class="icon-btn" title="Adicionar" onclick="editarChave()">+</button></div>
     </div>
   `;
 }
@@ -218,8 +220,9 @@ function renderChaveAsaas(a) {
 async function revelarChave(id) {
   const { data } = await db.from('academias').select('asaas_api_key').eq('id', id).single();
   if (!data?.asaas_api_key) return;
-  document.getElementById('chave-texto').textContent = data.asaas_api_key;
-  toast('Chave revelada — some novamente ao trocar de tela.');
+  const alvo = document.getElementById('chave-revelada-box');
+  alvo.innerHTML = `<div class="chave-revelada" title="Clique para copiar" onclick="navigator.clipboard.writeText('${data.asaas_api_key}').then(()=>toast('Chave copiada ✓'))">${esc(data.asaas_api_key)}</div>`;
+  toast('Chave revelada — clique nela para copiar.');
 }
 
 function editarChave() {
