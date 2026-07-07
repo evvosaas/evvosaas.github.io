@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v2.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -148,9 +148,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
       <span>Personais</span>
     </div>
+    <div class="nav-item" onclick="goAc('ac-financeiro',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>
+      <span>Financeiro</span>
+    </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v2.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -226,6 +230,39 @@
       </table>
     </div>
   </section>
+
+  <!-- ============ FINANCEIRO ============ -->
+  <section class="view" id="v-ac-financeiro">
+    <div class="topbar">
+      <div><h1>Financeiro</h1><div class="sub">Faturas do período · boleto + PIX (+ cartão quando permitido)</div></div>
+      <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
+        <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Vencimento</span>
+        <input type="date" id="ac-fin-ini" onchange="carregarFinanceiroAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+        <span>—</span>
+        <input type="date" id="ac-fin-fim" onchange="carregarFinanceiroAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi green"><div class="label">Recebido no período</div><div class="value" id="acfk-recebido">—</div><div class="delta">faturas pagas</div></div>
+      <div class="kpi amber"><div class="label">A receber</div><div class="value" id="acfk-areceber">—</div><div class="delta">pendentes</div></div>
+      <div class="kpi red"><div class="label">Em atraso</div><div class="value" id="acfk-atrasado">—</div><div class="delta">vencidas sem pagamento</div></div>
+      <div class="kpi grad"><div class="label">Canceladas</div><div class="value" id="acfk-cancelado">—</div><div class="delta">no período</div></div>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <div class="fchip active" onclick="filtraFinAc('todos',this)">Todas</div>
+        <div class="fchip" onclick="filtraFinAc('pago',this)">Pagas</div>
+        <div class="fchip" onclick="filtraFinAc('pendente',this)">Pendentes</div>
+        <div class="fchip" onclick="filtraFinAc('atrasado',this)">Atrasadas</div>
+        <div class="fchip" onclick="filtraFinAc('cancelado',this)">Canceladas</div>
+        <div class="search"><input id="ac-fin-q" placeholder="Buscar por aluno…" oninput="renderFinanceiroAc()"></div>
+      </div>
+      <table>
+        <thead><tr><th>Aluno</th><th>Vencimento</th><th>Academia</th><th>Personal</th><th>Total</th><th>Pago via</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
+        <tbody id="ac-fin-rows"><tr><td colspan="8" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
 </main>
 </div>
 
@@ -296,6 +333,40 @@
   </div>
 </div>
 
+<!-- ================= MODAL ALTERAR VENCIMENTO (academia) ================= -->
+<div class="overlay" id="m-venc-ac">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Alterar vencimento</div><button class="close" onclick="closeModal('m-venc-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Fatura</label><input id="ac-mv-aluno" disabled></div>
+      <div class="full"><label>Novo vencimento</label><input type="date" id="ac-mv-venc"></div>
+    </div>
+    <div class="form-note">O boleto é reemitido no Asaas com a nova data.</div>
+    <div class="modal-foot">
+      <div class="hint">Se estava atrasada e a nova data é futura, volta para "pendente".</div>
+      <button class="btn btn-primary" id="ac-mv-salvar" onclick="finSalvarVencAc()">Salvar nova data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL BAIXA MANUAL (academia) ================= -->
+<div class="overlay" id="m-baixa-ac">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Baixa manual</div><button class="close" onclick="closeModal('m-baixa-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Fatura</label><input id="ac-mb-aluno" disabled></div>
+      <div><label>Valor recebido (R$)</label><input type="number" id="ac-mb-valor" min="0" step="0.01" oninput="finBaixaConferirAc()"></div>
+      <div class="full" style="grid-column:1/-1"><label>Observação (obrigatória se o valor for diferente)</label><input id="ac-mb-obs" placeholder="Ex.: pago em dinheiro na recepção"></div>
+    </div>
+    <div class="form-note" id="ac-mb-aviso" style="display:none"></div>
+    <div class="form-note">⚠ Ao confirmar, o boleto/PIX desta fatura é CANCELADO no Asaas.</div>
+    <div class="modal-foot">
+      <div class="hint">O valor original e a observação ficam registrados para auditoria.</div>
+      <button class="btn btn-primary" id="ac-mb-salvar" onclick="finSalvarBaixaAc()">Confirmar baixa</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL FATURA GERADA (academia) ================= -->
 <div class="overlay" id="m-fatura-ac">
   <div class="modal">
@@ -345,11 +416,12 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=11"></script>
-<script src="js/app.js?v=11"></script>
-<script src="js/academias.js?v=11"></script>
+<script src="js/config.js?v=12"></script>
+<script src="js/app.js?v=12"></script>
+<script src="js/academias.js?v=12"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=3"></script>
 <script src="js/personais-academia.js?v=1"></script>
+<script src="js/financeiro-academia.js?v=1"></script>
 </body>
 </html>
