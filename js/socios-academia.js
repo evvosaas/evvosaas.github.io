@@ -115,11 +115,46 @@ function abrirSociosAc() {
   } else {
     grid.innerHTML = AC_SOCIOS.map((s, i) => `
       <div><label>Sócio ${i + 1}</label><input id="ac-ms-n${i}" value="${esc(s.nome)}"></div>
-      <div><label>Percentual (%)</label><input id="ac-ms-p${i}" type="number" min="0" max="100" step="0.5" value="${Number(s.percentual)}" oninput="acSocSoma()"></div>`).join('')
+      <div style="display:flex;gap:8px;align-items:end">
+        <div style="flex:1"><label>Percentual (%)</label><input id="ac-ms-p${i}" type="number" min="0" max="100" step="0.5" value="${Number(s.percentual)}" oninput="acSocSoma()"></div>
+        <button class="icon-btn del" title="Remover sócio" onclick="removerSocioAc(${i})" style="margin-bottom:1px">🗑</button>
+      </div>`).join('')
       + `<div class="full" style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="acAdicionarSocioSlot()">+ Adicionar sócio</button></div>`;
     acSocSoma();
   }
   openModal('m-socios-ac');
+}
+
+async function removerSocioAc(index) {
+  const s = AC_SOCIOS[index];
+  if (!s) return;
+
+  // Sócio novo (ainda nem salvo no banco): só remove da lista local
+  if (!s.id) {
+    AC_SOCIOS.splice(index, 1);
+    abrirSociosAc();
+    return;
+  }
+
+  // Sócio já salvo: verifica se aparece em algum fechamento histórico
+  const { data: fechamentos } = await db.from('fechamentos').select('distribuicao');
+  const apareceEmFechamento = (fechamentos || []).some(f =>
+    (f.distribuicao || []).some(d => d.socio === s.nome));
+
+  if (apareceEmFechamento) {
+    if (!confirm(`${s.nome} já aparece em fechamentos anteriores — excluir de verdade apagaria essa referência no histórico.\n\nRecomendado: ENCERRAR a vigência dele (sai da divisão a partir de hoje, mas o histórico continua intacto).\n\nOK = Encerrar vigência | Cancelar = não fazer nada`)) return;
+    const { error } = await db.from('socios').update({ vigencia_fim: new Date().toISOString().slice(0, 10) }).eq('id', s.id);
+    if (error) { toast('Erro: ' + error.message); return; }
+    toast(`${s.nome} não participa mais da divisão — histórico preservado.`);
+  } else {
+    if (!confirm(`Remover ${s.nome}? Ele nunca apareceu em nenhum fechamento, então a exclusão é definitiva.`)) return;
+    const { error } = await db.from('socios').delete().eq('id', s.id);
+    if (error) { toast('Erro: ' + error.message); return; }
+    toast(`${s.nome} removido ✓`);
+  }
+  carregarSociosAc();
+  AC_SOCIOS.splice(index, 1);
+  abrirSociosAc();
 }
 
 function acAdicionarSocioSlot() {
