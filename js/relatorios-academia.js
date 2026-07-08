@@ -15,6 +15,7 @@ function selecionarRelatorio(tipo, el) {
   document.getElementById('rel-filtros-periodo').style.display = tipo === 'extrato' || tipo === 'alunos' ? 'none' : 'flex';
   document.getElementById('rel-filtros-aluno').style.display = tipo === 'extrato' ? 'flex' : 'none';
   document.getElementById('rel-filtros-nenhum').style.display = tipo === 'alunos' ? 'flex' : 'none';
+  document.getElementById('rel-alunos-colunas').style.display = tipo === 'alunos' ? 'flex' : 'none';
 
   if (tipo === 'extrato') { popularSelectAlunos(); }
   else { gerarRelatorioAtual(); }
@@ -409,6 +410,16 @@ async function gerarRelatorioAlunos() {
   alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
 
   const situacao = document.getElementById('rel-alunos-situacao')?.value || 'ambos';
+  const col = {
+    cpf: document.getElementById('col-cpf')?.checked,
+    whatsapp: document.getElementById('col-whatsapp')?.checked,
+    email: document.getElementById('col-email')?.checked,
+    plano: document.getElementById('col-plano')?.checked,
+    personal: document.getElementById('col-personal')?.checked,
+    valorPlano: document.getElementById('col-valor-plano')?.checked,
+    valorPersonal: document.getElementById('col-valor-personal')?.checked,
+    cadastro: document.getElementById('col-cadastro')?.checked,
+  };
 
   const [{ data: nomeAcademia }, { data: alunos, error }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
@@ -422,31 +433,42 @@ async function gerarRelatorioAlunos() {
   const inativos = lista.filter(a => a.ativo === false);
   const comPersonal = ativos.filter(a => a.personal_id).length;
 
-  const linhaAluno = a => `
-    <tr>
-      <td>${esc(a.nome)}</td>
-      <td>${esc(a.plano)}</td>
-      <td>${a.personal ? esc(a.personal) : '—'}</td>
-      <td>${brl(a.mensalidade_total)}</td>
-      <td>${fmt(String(a.created_at).slice(0,10))}</td>
-    </tr>`;
+  // Monta cabeçalho e linhas dinamicamente, conforme as colunas marcadas
+  const cabecalhos = ['Nome'];
+  if (col.cpf) cabecalhos.push('CPF');
+  if (col.whatsapp) cabecalhos.push('WhatsApp');
+  if (col.email) cabecalhos.push('E-mail');
+  if (col.plano) cabecalhos.push('Plano');
+  if (col.personal) cabecalhos.push('Personal');
+  if (col.valorPlano) cabecalhos.push('Valor plano');
+  if (col.valorPersonal) cabecalhos.push('Valor personal');
+  if (col.cadastro) cabecalhos.push('Cadastrado em');
 
-  const linhasAtivos = ativos.map(linhaAluno).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno ativo.</td></tr>';
-  const linhasInativos = inativos.map(linhaAluno).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno inativo.</td></tr>';
+  const linhaAluno = a => {
+    const celulas = [esc(a.nome)];
+    if (col.cpf) celulas.push(esc(a.cpf || '—'));
+    if (col.whatsapp) celulas.push(esc(a.whatsapp || '—'));
+    if (col.email) celulas.push(esc(a.email || '—'));
+    if (col.plano) celulas.push(esc(a.plano || '—'));
+    if (col.personal) celulas.push(a.personal ? esc(a.personal) : '—');
+    if (col.valorPlano) celulas.push(brl(a.valor_plano));
+    if (col.valorPersonal) celulas.push(Number(a.valor_personal) > 0 ? brl(a.valor_personal) : '—');
+    if (col.cadastro) celulas.push(fmt(String(a.created_at).slice(0,10)));
+    return `<tr>${celulas.map(c => `<td>${c}</td>`).join('')}</tr>`;
+  };
+
+  const colspan = cabecalhos.length;
+  const linhasAtivos = ativos.map(linhaAluno).join('') || `<tr><td colspan="${colspan}" style="text-align:center;color:var(--muted)">Nenhum aluno ativo.</td></tr>`;
+  const linhasInativos = inativos.map(linhaAluno).join('') || `<tr><td colspan="${colspan}" style="text-align:center;color:var(--muted)">Nenhum aluno inativo.</td></tr>`;
+  const theadHtml = `<thead><tr>${cabecalhos.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
 
   const secaoAtivos = `
     <div class="rel-section-title">Alunos ativos (${ativos.length})</div>
-    <table class="rel-table">
-      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
-      <tbody>${linhasAtivos}</tbody>
-    </table>`;
+    <table class="rel-table">${theadHtml}<tbody>${linhasAtivos}</tbody></table>`;
 
   const secaoInativos = `
     <div class="rel-section-title">Alunos inativos (${inativos.length})</div>
-    <table class="rel-table">
-      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
-      <tbody>${linhasInativos}</tbody>
-    </table>`;
+    <table class="rel-table">${theadHtml}<tbody>${linhasInativos}</tbody></table>`;
 
   const tituloSituacao = situacao === 'ativos' ? 'Alunos Ativos' : situacao === 'inativos' ? 'Alunos Inativos' : 'Alunos Ativos/Inativos';
 
