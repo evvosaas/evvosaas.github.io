@@ -1,750 +1,340 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Evvo Master</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=22">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-</head>
-<body>
+/* ============================================================
+   EVVO — MÓDULO RELATÓRIOS (painel da academia)
+   Começa pelo Financeiro. Reaproveita a mesma régua de "valor
+   efetivamente recebido" já usada no Financeiro e nas Despesas.
+   Os demais relatórios (Repasses, Participação, Inadimplentes,
+   Extrato) chegam nas próximas entregas.
+   ============================================================ */
+let relAtual = 'financeiro';
 
-<!-- ================= LOGIN ================= -->
-<div id="tela-login">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="mark">V</div>
-      <div class="name">EVVO</div>
-      <div class="tag">Painel Master</div>
-    </div>
-    <label>Usuário ou e-mail</label>
-    <input id="lg-email" type="text" placeholder="usuário ou e-mail" autocomplete="username">
-    <label>Senha</label>
-    <input id="lg-pass" type="password" placeholder="••••••••" autocomplete="current-password">
-    <button class="btn-login" id="lg-btn" onclick="fazerLogin()">ENTRAR</button>
-    <div class="login-erro" id="lg-erro"></div>
-  </div>
-</div>
+function selecionarRelatorio(tipo, el) {
+  relAtual = tipo;
+  document.querySelectorAll('#v-ac-relatorios .fchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  gerarRelatorioAtual();
+}
 
-<!-- ================= APP ================= -->
-<div id="app-master">
-<aside>
-  <div class="logo">
-    <div class="logo-mark">V</div>
-    <div><div class="logo-name">EVVO</div><div class="logo-tag">Master</div></div>
-  </div>
-  <nav>
-    <div class="nav-item active" onclick="go('home',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-      <span>Visão geral</span>
-    </div>
-    <div class="nav-item" onclick="go('academias',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
-      <span>Academias</span>
-    </div>
-    <div class="nav-item" onclick="go('receitas',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>
-      <span>Minhas receitas</span>
-    </div>
-  </nav>
-  <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
-</aside>
+function gerarRelatorioAtual() {
+  if (relAtual === 'financeiro') gerarRelatorioFinanceiro();
+  if (relAtual === 'repasses') gerarRelatorioRepasses();
+  if (relAtual === 'participacao') gerarRelatorioParticipacao();
+  if (relAtual === 'inadimplentes') gerarRelatorioInadimplentes();
+}
 
-<main>
-  <!-- ============ VISÃO GERAL ============ -->
-  <section class="view active" id="v-home">
-    <div class="topbar">
-      <div><h1>Visão geral</h1><div class="sub" id="data-hoje">—</div></div>
-      <div class="chip"><div class="av" id="user-ini">JB</div> <span id="user-nome">Master</span></div>
-    </div>
-    <div class="kpis">
-      <div class="kpi green"><div class="label">Academias ativas</div><div class="value" id="h-academias-ativas">—</div><div class="delta">clientes do Evvo</div></div>
-      <div class="kpi grad"><div class="label">Receita mensal (MRR)</div><div class="value" id="h-mrr">—</div><div class="delta">soma das mensalidades ativas</div></div>
-      <div class="kpi blue"><div class="label">Alunos na plataforma</div><div class="value" id="h-alunos">—</div><div class="delta">somando todas as academias</div></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><h2>Academias que precisam de atenção</h2></div>
-      <table>
-        <thead><tr><th>Academia</th><th>Plano</th><th>Vencimento</th><th>Status</th></tr></thead>
-        <tbody id="home-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+function relPeriodoPadrao() {
+  const h = new Date();
+  const ini = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-01`;
+  const fim = new Date(h.getFullYear(), h.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const elIni = document.getElementById('rel-ini');
+  const elFim = document.getElementById('rel-fim');
+  if (!elIni.value) elIni.value = ini;
+  if (!elFim.value) elFim.value = fim;
+}
 
-  <!-- ============ ACADEMIAS ============ -->
-  <section class="view" id="v-academias">
-    <div class="topbar">
-      <div><h1>Academias</h1><div class="sub" id="acad-sub">—</div></div>
-      <button class="btn btn-primary" onclick="abrirAcademia(null)">+ Nova academia</button>
-    </div>
-    <div class="card">
-      <div class="filters">
-        <div class="fchip active" onclick="filtraAcadStatus('todas',this)">Todas</div>
-        <div class="fchip" onclick="filtraAcadStatus('ativa',this)">Ativas</div>
-        <div class="fchip" onclick="filtraAcadStatus('inativa',this)">Inativas</div>
-        <div class="fchip" onclick="filtraAcadStatus('configurando',this)">Configurando</div>
-        <div class="search"><input id="acad-q" placeholder="Buscar por nome…" oninput="renderAcademias()"></div>
-      </div>
-      <table>
-        <thead><tr><th>Academia</th><th>Responsável</th><th>Plano Evvo</th><th>Asaas</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
-        <tbody id="acad-rows"><tr><td colspan="6" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+async function carregarRelatoriosAc() {
+  relPeriodoPadrao();
+  await gerarRelatorioAtual();
+}
 
-  <!-- ============ DETALHE DA ACADEMIA ============ -->
-  <section class="view" id="v-detalhe">
-    <span class="back" onclick="go('academias',null)">← voltar para academias</span>
-    <div class="topbar">
-      <div style="display:flex;align-items:center;gap:14px">
-        <div class="acad-cell"><div class="av" id="det-avatar" style="background:#ff5a2b;width:52px;height:52px;border-radius:14px;font-size:17px">—</div></div>
-        <div><h1 id="det-nome" style="font-size:24px">—</h1><div class="sub" id="det-loc">—</div></div>
-      </div>
-      <span id="det-status">—</span>
-    </div>
-    <div class="det-grid">
-      <div class="card">
-        <div class="card-head"><h2>Dados da academia</h2><button class="btn btn-ghost btn-sm" onclick="abrirAcademia(acadDetalheId)">✎ Editar dados</button></div>
-        <div class="info-list">
-          <div class="li"><span class="k">Login (usuário)</span><span class="v" id="det-usuario-login">—</span></div>
-          <div class="li"><span class="k">E-mail de login</span><span class="v" id="det-email-login">—</span></div>
-          <div class="li"><span class="k">CPF/CNPJ</span><span class="v" id="det-cpfcnpj">—</span></div>
-          <div class="li"><span class="k">WhatsApp</span><span class="v" id="det-whatsapp">—</span></div>
-          <div class="li"><span class="k">Alunos cadastrados</span><span class="v" id="det-alunos">—</span></div>
-          <div class="li"><span class="k">Ambiente Asaas</span><span class="v" id="det-ambiente">—</span></div>
-          <div class="li"><span class="k">Chave API do Asaas</span><span class="v" id="det-chave-box">—</span></div>
-          <div class="li"><span class="k">Cliente desde</span><span class="v" id="det-criado">—</span></div>
-        </div>
-      </div>
-      <div>
-        <div class="pill-plan">
-          <div class="l">Plano Evvo desta academia</div>
-          <div class="big" id="det-plano-valor">—</div>
-          <div class="s"><span id="det-plano-nome">—</span> · vence dia <span id="det-plano-dia">—</span></div>
-        </div>
-        <div class="card" style="margin-top:18px">
-          <div class="card-head"><h2>Ações</h2></div>
-          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
-            <button class="btn btn-ghost" style="justify-content:center" onclick="resetarSenhaAcademia()">🔑 Enviar redefinição de senha (e-mail)</button>
-            <button class="btn btn-ghost" style="justify-content:center" onclick="abrirDefinirSenhaAc()">🔐 Definir nova senha manualmente</button>
-            <button class="btn btn-ghost" style="justify-content:center" onclick="abrirRegistrarPagamentoAc(acadDetalheId)">💰 Registrar pagamento recebido</button>
-            <button class="btn btn-danger" style="justify-content:center" onclick="toggleStatusAcademia()">⏸ Ativar/Inativar academia</button>
-            <button class="btn btn-danger" style="justify-content:center;border-color:var(--late);color:var(--late)" onclick="excluirAcademiaCompleta()">🗑 Excluir academia (definitivo)</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+/* ---------------- RELATÓRIO FINANCEIRO ---------------- */
+async function gerarRelatorioFinanceiro() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
 
-  <!-- ============ MINHAS RECEITAS ============ -->
-  <section class="view" id="v-receitas">
-    <div class="topbar">
-      <div><h1>Minhas receitas</h1><div class="sub">O que as academias pagam pelo Evvo</div></div>
-      <button class="btn btn-primary" onclick="abrirRegistrarPagamentoAc(null)">+ Registrar pagamento</button>
-    </div>
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
-      <div class="kpi green"><div class="label">Recebido no mês</div><div class="value" id="rec-mes">—</div><div class="delta">registrado manualmente</div></div>
-      <div class="kpi grad"><div class="label">Recebido no total</div><div class="value" id="rec-total">—</div><div class="delta">desde o início</div></div>
-      <div class="kpi blue"><div class="label">MRR atual</div><div class="value" id="rec-mrr">—</div><div class="delta">soma das mensalidades ativas</div></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><h2>Histórico de pagamentos</h2></div>
-      <table>
-        <thead><tr><th>Academia</th><th>Valor</th><th>Pago em</th><th>Observação</th><th style="text-align:right">Ações</th></tr></thead>
-        <tbody id="rec-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-</main>
-</div>
+  const [{ data: nomeAcademia }, { data: faturas, error }, { data: despesas }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('vw_financeiro').select('*').gte('vencimento', pIni).lte('vencimento', pFim).order('vencimento'),
+    db.from('despesas').select('*').gte('vencimento', pIni).lte('vencimento', pFim),
+  ]);
 
-<!-- ================= MODAL DEFINIR SENHA MANUALMENTE ================= -->
-<div class="overlay" id="m-definir-senha">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo">Definir nova senha</div><button class="close" onclick="closeModal('m-definir-senha')">✕</button></div>
-    <div style="padding:22px 26px">
-      <div class="form-note" style="margin:0 0 16px">Esta senha é tratada como temporária: a academia será obrigada a trocá-la no próximo login.</div>
-      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Nova senha</label>
-      <div style="display:flex;gap:8px">
-        <input id="ds-nova-senha" type="text" placeholder="Digite ou gere uma senha" style="flex:1;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;font-family:'JetBrains Mono',monospace">
-        <button class="btn btn-ghost" onclick="gerarSenhaTemporariaAc()">🎲 Gerar</button>
-      </div>
-      <div class="hint" style="margin-top:10px">Anote ou copie esta senha para passar à academia (por telefone/WhatsApp, nunca por canais inseguros).</div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="salvarSenhaManualAc()">Definir senha</button>
-    </div>
-  </div>
-</div>
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
 
-<!-- ================= MODAL REGISTRAR PAGAMENTO (academia → Evvo) ================= -->
-<div class="overlay" id="m-registrar-pag">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo">Registrar pagamento</div><button class="close" onclick="closeModal('m-registrar-pag')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Academia</label><select id="rp-academia"></select></div>
-      <div><label>Valor (R$)</label><input type="number" id="rp-valor" min="0" step="0.01"></div>
-      <div><label>Data do pagamento</label><input type="date" id="rp-data"></div>
-      <div class="full"><label>Observação (opcional)</label><input id="rp-obs" placeholder="Ex.: mensalidade de julho, via PIX"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-primary" onclick="salvarPagamentoAc()">Registrar</button>
-    </div>
-  </div>
-</div>
-<!-- ================= PAINEL DA ACADEMIA ================= -->
-<div id="app-academia" style="display:none">
-<aside>
-  <div class="logo">
-    <div class="logo-mark">V</div>
-    <div><div class="logo-name">EVVO</div><div class="logo-tag" id="ac-nome-sidebar">Academia</div></div>
-  </div>
-  <nav>
-    <div class="nav-item active" onclick="goAc('ac-dashboard',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-      <span>Dashboard</span>
-    </div>
-    <div class="nav-item" onclick="goAc('ac-alunos',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 15.2c2.7.2 4.8 1.6 5.5 4.3"/></svg>
-      <span>Alunos</span>
-    </div>
-    <div class="nav-item" onclick="goAc('ac-personais',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
-      <span>Personais</span>
-    </div>
-    <div class="nav-item" onclick="goAc('ac-financeiro',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>
-      <span>Financeiro</span>
-    </div>
-    <div class="nav-item" onclick="goAc('ac-despesas',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 1.8 2.6 5 3.2 5 1.4 5 3.3-2.2 3-5 3-5-1.1-5-3"/></svg>
-      <span>Despesas</span>
-    </div>
-    <div class="nav-item" onclick="goAc('ac-socios',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.5 6"/></svg>
-      <span>Participação</span>
-    </div>
-    <div class="nav-item" onclick="goAc('ac-config',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.5-2-3.5-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3H9l-.3 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7.5 7.5 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7.5 7.5 0 0 0 1.7 1L9 21h6l.3-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.5Z"/></svg>
-      <span>Configurações</span>
-    </div>
-    <div class="nav-item" onclick="goAc('ac-relatorios',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2.5h9l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14.5 2.5V7h4.5"/><path d="M8 12h8M8 15.5h8M8 18.5h5"/></svg>
-      <span>Relatórios</span>
-    </div>
-  </nav>
-  <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
-</aside>
+  const lista = faturas || [];
 
-<main>
-  <!-- ============ DASHBOARD DA ACADEMIA ============ -->
-  <section class="view active" id="v-ac-dashboard">
-    <div class="topbar">
-      <div><h1 id="ac-saudacao-dash">Olá 👊</h1><div class="sub" id="ac-data-hoje">—</div></div>
-      <div class="chip"><div class="av" id="ac-user-ini">AC</div> <span id="ac-nome-academia">Academia</span></div>
-    </div>
-    <div class="kpis">
-      <div class="kpi grad"><div class="label">Recebido no mês</div><div class="value" id="ack-bruto">—</div><div class="delta">mensalidades + personais</div></div>
-      <div class="kpi green"><div class="label">Receita da academia</div><div class="value" id="ack-academia">—</div><div class="delta">já descontado o repasse</div></div>
-      <div class="kpi blue"><div class="label">Repasse aos personais</div><div class="value" id="ack-repasse">—</div><div class="delta">sobre faturas pagas no mês</div></div>
-      <div class="kpi amber"><div class="label">Em atraso</div><div class="value" id="ack-atraso">—</div><div class="delta" id="ack-atraso-qtd">—</div></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><h2>Vencimentos próximos e atrasos</h2></div>
-      <table>
-        <thead><tr><th>Aluno</th><th>Vencimento</th><th>Total</th><th>Status</th></tr></thead>
-        <tbody id="ac-dash-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+  // valor efetivamente recebido nas faturas pagas do período
+  const idsPagos = lista.filter(m => m.status === 'pago').map(m => m.id);
+  let recebidoPorId = {};
+  if (idsPagos.length) {
+    const { data: pagos } = await db.from('pagamentos').select('mensalidade_id, valor').in('mensalidade_id', idsPagos);
+    (pagos || []).forEach(p => { recebidoPorId[p.mensalidade_id] = (recebidoPorId[p.mensalidade_id] || 0) + Number(p.valor); });
+  }
 
-  <!-- ============ ALUNOS ============ -->
-  <section class="view" id="v-ac-alunos">
-    <div class="topbar">
-      <div><h1>Alunos</h1><div class="sub" id="ac-alunos-sub">—</div></div>
-      <button class="btn btn-primary" onclick="abrirAlunoAc(null)">+ Novo aluno</button>
-    </div>
-    <div class="card">
-      <div class="filters">
-        <div class="fchip active" onclick="filtraAlunoAc('todos',this)">Todos</div>
-        <div class="fchip" onclick="filtraAlunoAc('com',this)">Com personal</div>
-        <div class="fchip" onclick="filtraAlunoAc('sem',this)">Sem personal</div>
-        <div class="fchip" onclick="filtraAlunoAc('inativos',this)">Inativos</div>
-        <div class="search"><input id="ac-alu-q" placeholder="Buscar por nome, CPF ou WhatsApp…" oninput="renderAlunosAc()"></div>
-      </div>
-      <table>
-        <thead><tr><th>Aluno</th><th>Plano</th><th>Personal</th><th>Mensalidade total</th><th>Cobrança</th><th style="text-align:right">Ações</th></tr></thead>
-        <tbody id="ac-alunos-rows"><tr><td colspan="6" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+  const somaReal = st => lista.filter(m => m.status === st).reduce((s, m) => {
+    if (st === 'pago') return s + Number(recebidoPorId[m.id] ?? m.valor_total);
+    return s + Number(m.valor_total);
+  }, 0);
 
-  <!-- ============ PERSONAIS ============ -->
-  <section class="view" id="v-ac-personais">
-    <div class="topbar">
-      <div><h1>Personais</h1><div class="sub">Terceirizados · repasse liberado somente sobre fatura paga</div></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
-          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
-          <input type="date" id="ac-pers-ini" onchange="carregarPersonaisAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-          <span>—</span>
-          <input type="date" id="ac-pers-fim" onchange="carregarPersonaisAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-        </div>
-        <button class="btn btn-primary" onclick="abrirPersonalAc(null)">+ Novo personal</button>
-      </div>
-    </div>
-    <div class="pers-grid" id="ac-pers-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px"></div>
-    <div class="card">
-      <div class="card-head"><h2>Detalhe do período — faturas com personal</h2><span class="badge b-info" id="ac-pers-rep-total">—</span></div>
-      <table>
-        <thead><tr><th>Personal</th><th>Aluno</th><th>Valor do personal</th><th>Fatura</th><th>Repasse</th></tr></thead>
-        <tbody id="ac-pers-rep-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-    <div class="card">
-      <div class="card-head"><h2>Histórico de repasses pagos</h2></div>
-      <table>
-        <thead><tr><th>Personal</th><th>Período</th><th>Valor</th><th>Pago em</th><th>Obs.</th></tr></thead>
-        <tbody id="ac-pers-hist-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+  const recebido = somaReal('pago');
+  const aReceber = somaReal('pendente');
+  const emAtraso = somaReal('atrasado');
+  const cancelado = somaReal('cancelado');
+  const totalDespesas = (despesas || []).reduce((s, d) => s + Number(d.valor), 0);
+  const resultado = recebido - totalDespesas;
 
-  <!-- ============ FINANCEIRO ============ -->
-  <section class="view" id="v-ac-financeiro">
-    <div class="topbar">
-      <div><h1>Financeiro</h1><div class="sub">Faturas do período · boleto + PIX (+ cartão quando permitido)</div></div>
-      <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
-        <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Vencimento</span>
-        <input type="date" id="ac-fin-ini" onchange="carregarFinanceiroAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-        <span>—</span>
-        <input type="date" id="ac-fin-fim" onchange="carregarFinanceiroAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-      </div>
-    </div>
-    <div class="kpis">
-      <div class="kpi green"><div class="label">Recebido no período</div><div class="value" id="acfk-recebido">—</div><div class="delta">faturas pagas</div></div>
-      <div class="kpi amber"><div class="label">A receber</div><div class="value" id="acfk-areceber">—</div><div class="delta">pendentes</div></div>
-      <div class="kpi red"><div class="label">Em atraso</div><div class="value" id="acfk-atrasado">—</div><div class="delta">vencidas sem pagamento</div></div>
-      <div class="kpi grad"><div class="label">Canceladas</div><div class="value" id="acfk-cancelado">—</div><div class="delta">no período</div></div>
-    </div>
-    <div class="card">
-      <div class="filters">
-        <div class="fchip active" onclick="filtraFinAc('todos',this)">Todas</div>
-        <div class="fchip" onclick="filtraFinAc('pago',this)">Pagas</div>
-        <div class="fchip" onclick="filtraFinAc('pendente',this)">Pendentes</div>
-        <div class="fchip" onclick="filtraFinAc('atrasado',this)">Atrasadas</div>
-        <div class="fchip" onclick="filtraFinAc('cancelado',this)">Canceladas</div>
-        <div class="search"><input id="ac-fin-q" placeholder="Buscar por aluno…" oninput="renderFinanceiroAc()"></div>
-      </div>
-      <table>
-        <thead><tr><th>Aluno</th><th>Vencimento</th><th>Academia</th><th>Personal</th><th>Total</th><th>Pago via</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
-        <tbody id="ac-fin-rows"><tr><td colspan="8" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+  const linhasFaturas = lista.filter(m => m.status !== 'cancelado').map(m => {
+    const valorMostrar = m.status === 'pago' ? (recebidoPorId[m.id] ?? m.valor_total) : m.valor_total;
+    return `<tr>
+      <td>${esc(m.aluno)}</td>
+      <td>${fmt(m.vencimento)}</td>
+      <td>${brl(valorMostrar)}</td>
+      <td style="text-transform:capitalize">${esc(m.status)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma fatura no período.</td></tr>';
 
-  <!-- ============ DESPESAS ============ -->
-  <section class="view" id="v-ac-despesas">
-    <div class="topbar">
-      <div><h1>Despesas</h1><div class="sub">Custos fixos e variáveis · recorrentes são replicadas todo dia 1º</div></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
-          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
-          <input type="date" id="ac-desp-ini" onchange="carregarDespesasAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-          <span>—</span>
-          <input type="date" id="ac-desp-fim" onchange="carregarDespesasAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-        </div>
-        <button class="btn btn-primary" onclick="abrirDespesaAc(null)">+ Nova despesa</button>
-      </div>
-    </div>
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
-      <div class="kpi red"><div class="label">Total no período</div><div class="value" id="acdk-total">—</div><div class="delta" id="acdk-qtd">—</div></div>
-      <div class="kpi amber"><div class="label">A pagar</div><div class="value" id="acdk-apagar">—</div><div class="delta">no período selecionado</div></div>
-      <div class="kpi grad"><div class="label">Resultado do período</div><div class="value" id="acdk-resultado">—</div><div class="delta">receita academia − despesas (informativo)</div></div>
-    </div>
-    <div class="card">
-      <div class="filters">
-        <div class="fchip active" onclick="filtraDespAc('todas',this)">Todas</div>
-        <div class="fchip" onclick="filtraDespAc('apagar',this)">A pagar</div>
-        <div class="fchip" onclick="filtraDespAc('pagas',this)">Pagas</div>
-        <div class="fchip" onclick="filtraDespAc('recorrentes',this)">Recorrentes</div>
-      </div>
-      <table>
-        <thead><tr><th>Descrição</th><th>Categoria</th><th>Vencimento</th><th>Valor</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
-        <tbody id="ac-desp-rows"><tr><td colspan="6" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+  const linhasDespesas = (despesas || []).map(d => `
+    <tr><td>${esc(d.descricao)}</td><td>${esc(d.categoria)}</td><td>${fmt(d.vencimento)}</td><td>${brl(d.valor)}</td></tr>
+  `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma despesa no período.</td></tr>';
 
-  <!-- ============ PARTICIPAÇÃO ============ -->
-  <section class="view" id="v-ac-socios">
-    <div class="topbar">
-      <div><h1>Participação dos sócios</h1><div class="sub">Base = valor que entrou de alunos (parte da academia, sem os personais)</div></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
-          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
-          <input type="date" id="ac-soc-ini" onchange="carregarSociosAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-          <span>—</span>
-          <input type="date" id="ac-soc-fim" onchange="carregarSociosAc()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-        </div>
-        <button class="btn btn-primary" onclick="fecharPeriodoAc()">🔒 Fechar período</button>
-      </div>
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Relatório Financeiro</h2>
+      <div class="periodo">Período: ${fmt(pIni)} a ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Base de cálculo</h2><span class="badge b-info" id="ac-soc-periodo-lbl">—</span></div>
-      <div id="ac-soc-erro" style="color:var(--late);padding:0 20px;font-size:13px"></div>
-      <div class="calc-box">
-        <div class="row"><span class="lbl">(+) Recebido dos alunos no período (valor que entrou)</span><span id="ac-c-bruto">—</span></div>
-        <div class="row neg"><span class="lbl">(−) Parte dos personais (repasse, não entra na divisão)</span><span id="ac-c-repasse">—</span></div>
-        <div class="row total"><span>Base para distribuição (parte da academia)</span><span id="ac-c-base">—</span></div>
-      </div>
-      <div class="info-box">ℹ️ Despesas do período: <b id="ac-c-despesas" style="color:var(--ink)">—</b> — apenas informativo, <b>não</b> é descontado da base dos sócios.</div>
-      <div class="socio-bar" id="ac-soc-bar"></div>
-      <div class="socio-legend" id="ac-soc-legend"></div>
+    <div class="rel-kpis">
+      <div class="rel-kpi"><div class="l">Recebido</div><div class="v" style="color:var(--ok)">${brl(recebido)}</div></div>
+      <div class="rel-kpi"><div class="l">A receber</div><div class="v" style="color:var(--warn)">${brl(aReceber)}</div></div>
+      <div class="rel-kpi"><div class="l">Em atraso</div><div class="v" style="color:var(--late)">${brl(emAtraso)}</div></div>
+      <div class="rel-kpi"><div class="l">Cancelado</div><div class="v">${brl(cancelado)}</div></div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Distribuição por sócio</h2><button class="btn btn-ghost btn-sm" onclick="abrirSociosAc()">✎ Editar percentuais</button></div>
-      <table>
-        <thead><tr><th>Sócio</th><th>Percentual</th><th>Valor no período</th></tr></thead>
-        <tbody id="ac-soc-rows"><tr><td colspan="3" class="carregando">Carregando…</td></tr></tbody>
-      </table>
+    <div class="rel-section-title">Faturas do período</div>
+    <table class="rel-table">
+      <thead><tr><th>Aluno</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
+      <tbody>${linhasFaturas}</tbody>
+    </table>
+
+    <div class="rel-section-title">Despesas do período</div>
+    <table class="rel-table">
+      <thead><tr><th>Descrição</th><th>Categoria</th><th>Vencimento</th><th>Valor</th></tr></thead>
+      <tbody>${linhasDespesas}</tbody>
+      <tfoot><tr class="rel-total-row"><td colspan="3">Total de despesas</td><td>${brl(totalDespesas)}</td></tr></tfoot>
+    </table>
+
+    <div class="rel-resultado">
+      <span>Resultado do período (recebido − despesas)</span>
+      <span class="num" style="color:${resultado >= 0 ? 'var(--ok)' : 'var(--late)'}">${brl(resultado)}</span>
+    </div>
+    <div class="rel-nota">Relatório informativo. "Recebido" reflete o valor efetivamente pago, não o valor de face das faturas.</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE REPASSES AOS PERSONAIS ---------------- */
+async function gerarRelatorioRepasses() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: devidos, error }, { data: repassesPagos }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.rpc('fn_repasses_devidos', { p_academia_id: MEU_ACADEMIA_ID, p_ini: pIni, p_fim: pFim }),
+    db.from('repasses').select('*, personais(nome)').eq('status', 'pago')
+      .gte('periodo_ini', pIni).lte('periodo_fim', pFim).order('pago_em'),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const listaDevidos = devidos || [];
+  const jaPagoPorPersonal = {};
+  (repassesPagos || []).forEach(r => {
+    jaPagoPorPersonal[r.personal_id] = (jaPagoPorPersonal[r.personal_id] || 0) + Number(r.valor);
+  });
+
+  let totalDevido = 0, totalPago = 0;
+  const linhasPersonais = listaDevidos.map(p => {
+    const pago = jaPagoPorPersonal[p.personal_id] || 0;
+    const saldo = Math.max(Number(p.valor_total) - pago, 0);
+    totalDevido += Number(p.valor_total);
+    totalPago += pago;
+    return `<tr>
+      <td>${esc(p.personal)}</td>
+      <td>${p.qtd_alunos}</td>
+      <td>${brl(p.valor_total)}</td>
+      <td>${brl(pago)}</td>
+      <td style="font-weight:700;color:${saldo > 0 ? 'var(--warn)' : 'var(--ok)'}">${brl(saldo)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum repasse devido no período.</td></tr>';
+
+  const linhasHistorico = (repassesPagos || []).map(r => `
+    <tr><td>${esc(r.personais?.nome || '—')}</td><td>${brl(r.valor)}</td><td>${fmt(String(r.pago_em).slice(0,10))}</td><td>${esc(r.observacao || '—')}</td></tr>
+  `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhum repasse registrado como pago no período.</td></tr>';
+
+  const saldoTotal = Math.max(totalDevido - totalPago, 0);
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Relatório de Repasses</h2>
+      <div class="periodo">Período: ${fmt(pIni)} a ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Fechamentos (consulta permanente)</h2></div>
-      <table>
-        <thead><tr><th>Período</th><th>Bruto recebido</th><th>Base distribuída</th><th>Distribuição</th><th>Status</th></tr></thead>
-        <tbody id="ac-fech-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ============ CONFIGURAÇÕES ============ -->
-  <section class="view" id="v-ac-config">
-    <div class="topbar">
-      <div><h1>Configurações</h1><div class="sub">Planos, geração automática e integração com o Asaas</div></div>
+    <div class="rel-kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="rel-kpi"><div class="l">Devido no período</div><div class="v">${brl(totalDevido)}</div></div>
+      <div class="rel-kpi"><div class="l">Já repassado</div><div class="v" style="color:var(--ok)">${brl(totalPago)}</div></div>
+      <div class="rel-kpi"><div class="l">Saldo pendente</div><div class="v" style="color:var(--warn)">${brl(saldoTotal)}</div></div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Planos</h2><button class="btn btn-primary btn-sm" onclick="abrirPlanoAc(null)">+ Novo plano</button></div>
-      <table>
-        <thead><tr><th>Plano</th><th>Valor</th><th>Periodicidade</th><th>Alunos ativos</th><th style="text-align:right">Ações</th></tr></thead>
-        <tbody id="ac-planos-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
-      </table>
+    <div class="rel-section-title">Repasses por personal</div>
+    <table class="rel-table">
+      <thead><tr><th>Personal</th><th>Alunos</th><th>Devido</th><th>Repassado</th><th>Saldo</th></tr></thead>
+      <tbody>${linhasPersonais}</tbody>
+    </table>
+
+    <div class="rel-section-title">Histórico de repasses pagos no período</div>
+    <table class="rel-table">
+      <thead><tr><th>Personal</th><th>Valor</th><th>Pago em</th><th>Observação</th></tr></thead>
+      <tbody>${linhasHistorico}</tbody>
+    </table>
+
+    <div class="rel-nota">Devido = valor liberado sobre faturas já pagas dos alunos no período. Repasse ainda não pago fica como saldo.</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE PARTICIPAÇÃO DOS SÓCIOS ---------------- */
+async function gerarRelatorioParticipacao() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: fechamento }, { data: partLive, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('fechamentos').select('*').eq('periodo_ini', pIni).eq('periodo_fim', pFim).maybeSingle(),
+    db.rpc('fn_participacao', { p_academia_id: MEU_ACADEMIA_ID, p_ini: pIni, p_fim: pFim }),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  // Se o período já foi fechado oficialmente, usa o snapshot imutável.
+  // Senão, mostra o cálculo ao vivo (pode mudar até ser fechado).
+  const p = fechamento || (partLive && partLive[0]);
+  if (!p) { alvo.innerHTML = '<div class="vazio">Sem dados para este período.</div>'; return; }
+
+  const statusBadge = fechamento
+    ? `<span class="badge b-ok" style="margin-top:8px">🔒 Período fechado em ${fmt(String(fechamento.created_at).slice(0,10))}</span>`
+    : `<span class="badge b-warn" style="margin-top:8px">Período em aberto — valores ainda podem mudar</span>`;
+
+  const distribuicao = p.distribuicao || [];
+  const linhasSocios = distribuicao.map(d => `
+    <tr><td>${esc(d.socio)}</td><td>${Number(d.percentual)}%</td><td style="font-weight:700">${brl(d.valor)}</td></tr>
+  `).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Nenhum sócio cadastrado.</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Participação dos Sócios</h2>
+      <div class="periodo">Período: ${fmt(pIni)} a ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+      <div>${statusBadge}</div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Geração automática de faturas</h2></div>
-      <div style="padding:18px 20px;display:flex;flex-direction:column;gap:16px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer">
-          <input type="checkbox" id="ac-cfg-pausa" onchange="salvarPausaAc()" style="width:17px;height:17px">
-          <b>⏸ Pausar geração automática de faturas</b>
-        </label>
-        <div id="ac-cfg-pausa-lbl" style="font-size:13px;font-weight:600;color:var(--muted)">—</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px">
-          Gerar a fatura de cada aluno
-          <input type="number" id="ac-cfg-dias" min="1" max="30" style="width:70px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px">
-          dia(s) antes do vencimento
-          <button class="btn btn-ghost btn-sm" onclick="salvarDiasAc()">Salvar</button>
-        </div>
-      </div>
+    <div class="rel-section-title">Base de cálculo</div>
+    <table class="rel-table">
+      <tbody>
+        <tr><td>(+) Recebido dos alunos no período</td><td style="text-align:right">${brl(p.bruto_recebido)}</td></tr>
+        <tr><td>(−) Parte dos personais (repasse)</td><td style="text-align:right;color:var(--late)">− ${brl(p.total_personais)}</td></tr>
+        <tr class="rel-total-row"><td>Base para distribuição</td><td style="text-align:right">${brl(p.base_distribuicao)}</td></tr>
+      </tbody>
+    </table>
+    <div class="rel-nota" style="margin-top:8px">Despesas do período: ${brl(p.despesas_periodo)} — apenas informativo, não é descontado da base dos sócios.</div>
+
+    <div class="rel-section-title">Distribuição por sócio</div>
+    <table class="rel-table">
+      <thead><tr><th>Sócio</th><th>Percentual</th><th>Valor</th></tr></thead>
+      <tbody>${linhasSocios}</tbody>
+    </table>
+
+    <div class="rel-nota">${fechamento ? 'Valores extraídos do fechamento oficial deste período — não mudam mesmo que dados posteriores sejam alterados.' : 'Período ainda não fechado — feche em "Participação" para gravar um registro permanente.'}</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE INADIMPLENTES ---------------- */
+async function gerarRelatorioInadimplentes() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: atrasados, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('mensalidades')
+      .select('vencimento, valor_total, aluno_id, alunos(nome, whatsapp)')
+      .eq('status', 'atrasado')
+      .gte('vencimento', pIni).lte('vencimento', pFim)
+      .order('vencimento'),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const hoje = new Date();
+  const lista = (atrasados || []).map(m => {
+    const venc = new Date(m.vencimento + 'T00:00:00');
+    const diasAtraso = Math.max(Math.floor((hoje - venc) / 86400000), 0);
+    return { ...m, diasAtraso };
+  }).sort((a, b) => b.diasAtraso - a.diasAtraso);
+
+  const totalValor = lista.reduce((s, m) => s + Number(m.valor_total), 0);
+  const alunosUnicos = new Set(lista.map(m => m.aluno_id)).size;
+
+  const linhas = lista.map(m => `
+    <tr>
+      <td>${esc(m.alunos?.nome || '—')}</td>
+      <td>${esc(m.alunos?.whatsapp || '—')}</td>
+      <td>${fmt(m.vencimento)}</td>
+      <td style="font-weight:700;color:${m.diasAtraso > 15 ? 'var(--late)' : 'var(--warn)'}">${m.diasAtraso} dia(s)</td>
+      <td>${brl(m.valor_total)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum inadimplente no período. 🎉</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Inadimplentes</h2>
+      <div class="periodo">Vencimentos entre ${fmt(pIni)} e ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Integração com o Asaas</h2></div>
-      <div id="ac-integracao-box"></div>
-    </div>
-  </section>
-
-  <!-- ============ RELATÓRIOS ============ -->
-  <section class="view" id="v-ac-relatorios">
-    <div class="topbar">
-      <div><h1>Relatórios</h1><div class="sub">Visualize na tela, imprima ou baixe em PDF</div></div>
+    <div class="rel-kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="rel-kpi"><div class="l">Total em atraso</div><div class="v" style="color:var(--late)">${brl(totalValor)}</div></div>
+      <div class="rel-kpi"><div class="l">Faturas atrasadas</div><div class="v">${lista.length}</div></div>
+      <div class="rel-kpi"><div class="l">Alunos únicos</div><div class="v">${alunosUnicos}</div></div>
     </div>
 
-    <div class="card">
-      <div class="filters">
-        <div class="fchip active" onclick="selecionarRelatorio('financeiro',this)">📊 Financeiro</div>
-        <div class="fchip" onclick="selecionarRelatorio('repasses',this)">💸 Repasses</div>
-        <div class="fchip" onclick="selecionarRelatorio('participacao',this)">🤝 Participação</div>
-        <div class="fchip" onclick="selecionarRelatorio('inadimplentes',this)">⚠ Inadimplentes</div>
-        <div class="fchip" onclick="toast('Em construção — próxima entrega')">👤 Extrato de aluno</div>
-      </div>
-      <div style="padding:16px 20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)">
-        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
-          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
-          <input type="date" id="rel-ini" onchange="gerarRelatorioAtual()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-          <span>—</span>
-          <input type="date" id="rel-fim" onchange="gerarRelatorioAtual()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
-        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
-      </div>
-      <div style="padding:26px 30px;overflow-x:auto">
-        <div id="rel-conteudo" style="max-width:720px;margin:0 auto"></div>
-      </div>
-    </div>
-  </section>
-</main>
-</div>
+    <div class="rel-section-title">Lista de inadimplentes (mais atrasado primeiro)</div>
+    <table class="rel-table">
+      <thead><tr><th>Aluno</th><th>WhatsApp</th><th>Vencimento</th><th>Atraso</th><th>Valor</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
 
-<!-- área invisível usada só na hora de imprimir (@media print) -->
-<div id="print-area"></div>
+    <div class="rel-nota">Dias de atraso calculados a partir da data de hoje. Use o WhatsApp para entrar em contato pela cobrança.</div>
+  `;
+}
 
-<!-- ================= MODAL PLANO (academia) ================= -->
-<div class="overlay" id="m-plano-ac">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo" id="ac-mpl-title">Novo plano</div><button class="close" onclick="closeModal('m-plano-ac')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Nome do plano *</label><input id="ac-mpl-nome" placeholder="Ex.: Mensal"></div>
-      <div><label>Valor (R$) *</label><input type="number" id="ac-mpl-valor" min="0" step="0.01" placeholder="120,00"></div>
-      <div><label>Periodicidade</label>
-        <select id="ac-mpl-per">
-          <option value="1">Mensal</option>
-          <option value="3">Trimestral</option>
-          <option value="6">Semestral</option>
-          <option value="12">Anual</option>
-        </select>
-      </div>
-      <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-mpl-ativo" checked style="width:17px;height:17px;flex:none">Plano ativo (aparece no cadastro de alunos)</label></div>
-    </div>
-    <div class="form-note">Alterar o valor de um plano NÃO muda faturas já emitidas.</div>
-    <div class="modal-foot">
-      <div class="hint">Plano com alunos vinculados não pode ser excluído — inative-o.</div>
-      <button class="btn btn-primary" onclick="salvarPlanoAc()">Salvar</button>
-    </div>
-  </div>
-</div>
+/* ---------------- IMPRIMIR / PDF ---------------- */
+function imprimirRelatorio() {
+  const conteudo = document.getElementById('rel-conteudo').innerHTML;
+  document.getElementById('print-area').innerHTML = conteudo;
+  window.print();
+}
 
-<!-- ================= MODAL PERCENTUAIS (academia) ================= -->
-<div class="overlay" id="m-socios-ac">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo">Percentuais dos sócios</div><button class="close" onclick="closeModal('m-socios-ac')">✕</button></div>
-    <div class="form-grid" id="ac-ms-grid"></div>
-    <div class="form-note" id="ac-ms-nota">A soma deve fechar em 100%.</div>
-    <div class="modal-foot">
-      <div class="hint">Fechamentos já gravados não mudam — os novos percentuais valem para os próximos cálculos.</div>
-      <button class="btn btn-primary" onclick="salvarSociosAc()">Salvar percentuais</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL DESPESA (academia) ================= -->
-<div class="overlay" id="m-despesa-ac">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo" id="ac-md-title">Nova despesa</div><button class="close" onclick="closeModal('m-despesa-ac')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Descrição *</label><input id="ac-md-desc" placeholder="Ex.: Energia elétrica"></div>
-      <div><label>Categoria</label>
-        <select id="ac-md-cat">
-          <option>Fixa</option><option>Variável</option><option>Manutenção</option>
-          <option>Pessoal / CLT</option><option>Impostos</option><option>Outros</option>
-        </select>
-      </div>
-      <div><label>Valor (R$) *</label><input type="number" id="ac-md-valor" min="0" step="0.01" placeholder="0,00"></div>
-      <div><label>Vencimento *</label><input type="date" id="ac-md-venc"></div>
-      <div style="display:flex;align-items:end;padding-bottom:4px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-md-rec" style="width:17px;height:17px;flex:none">Repete todo mês (recorrente)</label>
-      </div>
-    </div>
-    <div class="form-note">Despesas recorrentes são lançadas automaticamente no mesmo dia de cada mês seguinte.</div>
-    <div class="modal-foot">
-      <div class="hint">O valor pode ser ajustado a cada mês editando o lançamento daquele mês.</div>
-      <button class="btn btn-primary" onclick="salvarDespesaAc()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL PERSONAL (academia) ================= -->
-<div class="overlay" id="m-pers-ac">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo" id="ac-mp-title">Novo personal</div><button class="close" onclick="closeModal('m-pers-ac')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Nome completo *</label><input id="ac-mp-nome" placeholder="Ex.: Rafael Lima"></div>
-      <div><label>CREF</label><input id="ac-mp-cref" placeholder="000000-G/PR"></div>
-      <div><label>WhatsApp (com DDD)</label><input id="ac-mp-zap" placeholder="44999990000"></div>
-      <div class="full"><label>Chave PIX para repasse</label><input id="ac-mp-pix" placeholder="CPF, celular, e-mail ou aleatória"></div>
-      <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-mp-ativo" checked style="width:17px;height:17px;flex:none">Personal ativo</label></div>
-    </div>
-    <div class="modal-foot">
-      <div class="hint">O valor cobrado é definido individualmente no cadastro de cada aluno vinculado.</div>
-      <button class="btn btn-primary" onclick="salvarPersonalAc()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL REDEFINIR SENHA (link de recuperação) ================= -->
-<div class="overlay" id="m-redefinir-senha">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo">Definir nova senha</div></div>
-    <div style="padding:22px 26px">
-      <div class="sub" style="margin-bottom:16px">Você chegou aqui por um link de redefinição de senha. Escolha sua nova senha abaixo.</div>
-      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Nova senha</label>
-      <input id="rs-nova-senha" type="password" placeholder="••••••••" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px">
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="salvarNovaSenhaRecuperacao()">Salvar nova senha</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL PRIMEIRO ACESSO (bloqueante) ================= -->
-<div class="overlay" id="m-primeiro-acesso">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo">Bem-vindo(a) ao Evvo!</div></div>
-    <div style="padding:22px 26px">
-      <div class="sub" id="ac-saudacao" style="margin-bottom:16px">—</div>
-      <div class="form-note" style="margin:0 0 14px">Primeiro acesso: defina sua senha definitiva antes de continuar.</div>
-      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Nova senha</label>
-      <input id="ac-nova-senha" type="password" placeholder="••••••••" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px">
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="trocarSenhaAcademia()">Definir senha e continuar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL ALUNO (academia) ================= -->
-<div class="overlay" id="m-aluno-ac">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo" id="ac-ma-title">Novo aluno</div><button class="close" onclick="closeModal('m-aluno-ac')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Nome completo *</label><input id="ac-ma-nome" placeholder="Ex.: Maria Souza"></div>
-      <div><label>CPF</label><input id="ac-ma-cpf" placeholder="000.000.000-00"></div>
-      <div><label>WhatsApp (com DDD)</label><input id="ac-ma-zap" placeholder="44999990000"></div>
-      <div class="full"><label>E-mail (opcional)</label><input id="ac-ma-email" placeholder="aluno@email.com"></div>
-      <div><label>Plano</label><select id="ac-ma-plano" onchange="acMaCalc()"></select></div>
-      <div><label>Dia de vencimento</label>
-        <select id="ac-ma-dia"><option>5</option><option>10</option><option>15</option><option>20</option><option>25</option></select>
-      </div>
-      <div><label>Personal (opcional)</label><select id="ac-ma-pid" onchange="acMaCalc()"></select></div>
-      <div><label>Valor do personal (R$)</label><input id="ac-ma-pval" type="number" min="0" step="0.01" value="0" oninput="acMaCalc()"></div>
-      <div><label>Forma de cobrança</label>
-        <select id="ac-ma-forma">
-          <option value="fatura">Fatura (boleto + PIX)</option>
-          <option value="cartao_recorrente">Cartão recorrente (assinatura)</option>
-        </select>
-      </div>
-      <div class="full" style="display:flex;gap:24px;padding-top:2px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-ma-cartao" style="width:17px;height:17px;flex:none">Permitir cartão na fatura</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-ma-ativo" checked style="width:17px;height:17px;flex:none">Aluno ativo</label>
-      </div>
-    </div>
-    <div class="form-note" id="ac-ma-nota">—</div>
-    <div class="modal-foot">
-      <button class="btn btn-primary" id="ac-ma-salvar" onclick="salvarAlunoAc()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL ALTERAR VENCIMENTO (academia) ================= -->
-<div class="overlay" id="m-venc-ac">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo">Alterar vencimento</div><button class="close" onclick="closeModal('m-venc-ac')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Fatura</label><input id="ac-mv-aluno" disabled></div>
-      <div class="full"><label>Novo vencimento</label><input type="date" id="ac-mv-venc"></div>
-    </div>
-    <div class="form-note">O boleto é reemitido no Asaas com a nova data.</div>
-    <div class="modal-foot">
-      <div class="hint">Se estava atrasada e a nova data é futura, volta para "pendente".</div>
-      <button class="btn btn-primary" id="ac-mv-salvar" onclick="finSalvarVencAc()">Salvar nova data</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL BAIXA MANUAL (academia) ================= -->
-<div class="overlay" id="m-baixa-ac">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo">Baixa manual</div><button class="close" onclick="closeModal('m-baixa-ac')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Fatura</label><input id="ac-mb-aluno" disabled></div>
-      <div><label>Valor recebido (R$)</label><input type="number" id="ac-mb-valor" min="0" step="0.01" oninput="finBaixaConferirAc()"></div>
-      <div class="full" style="grid-column:1/-1"><label>Observação (obrigatória se o valor for diferente)</label><input id="ac-mb-obs" placeholder="Ex.: pago em dinheiro na recepção"></div>
-    </div>
-    <div class="form-note" id="ac-mb-aviso" style="display:none"></div>
-    <div class="form-note">⚠ Ao confirmar, o boleto/PIX desta fatura é CANCELADO no Asaas.</div>
-    <div class="modal-foot">
-      <div class="hint">O valor original e a observação ficam registrados para auditoria.</div>
-      <button class="btn btn-primary" id="ac-mb-salvar" onclick="finSalvarBaixaAc()">Confirmar baixa</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL FATURA GERADA (academia) ================= -->
-<div class="overlay" id="m-fatura-ac">
-  <div class="modal">
-    <div class="modal-head">
-      <div>
-        <div class="titulo">✅ Fatura — <span id="ac-mf-aluno"></span></div>
-        <div style="font-size:12.5px;opacity:.85;margin-top:4px" id="ac-mf-info"></div>
-      </div>
-      <button class="close" onclick="closeModal('m-fatura-ac')">✕</button>
-    </div>
-    <div style="padding:22px 26px;display:flex;flex-direction:column;gap:12px" id="ac-mf-links"></div>
-    <div class="modal-foot">
-      <div class="hint">O pagamento será identificado automaticamente pelo webhook quando o aluno pagar.</div>
-      <button class="btn btn-ghost" onclick="closeModal('m-fatura-ac')">Fechar</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- ================= MODAL NOVA/EDITAR ACADEMIA ================= -->
-<div class="overlay" id="m-academia">
-  <div class="modal">
-    <div class="modal-head"><div class="titulo" id="ma-title">Nova academia</div><button class="close" onclick="closeModal('m-academia')">✕</button></div>
-    <div class="form-grid">
-      <div class="full"><label>Nome da academia *</label><input id="ma-nome" placeholder="Ex.: Power Body"></div>
-      <div><label>Cidade / UF</label><input id="ma-cidade" placeholder="Cascavel-PR"></div>
-      <div><label>CPF ou CNPJ</label><input id="ma-cpfcnpj" placeholder="000.000.000-00 ou 00.000.000/0001-00"></div>
-      <div><label>Responsável</label><input id="ma-resp" placeholder="Nome do dono"></div>
-      <div><label>WhatsApp</label><input id="ma-zap" placeholder="44999990000"></div>
-      <div><label>Plano Evvo</label>
-        <select id="ma-plano"><option value="Básico">Básico</option><option value="Profissional">Profissional</option></select>
-      </div>
-      <div><label>Valor mensal (R$)</label><input type="number" id="ma-valor" min="0" step="0.01"></div>
-      <div><label>Dia de vencimento</label><input type="number" id="ma-dia" min="1" max="28"></div>
-      <div class="full"><label>Ambiente Asaas desta academia</label>
-        <select id="ma-ambiente">
-          <option value="sandbox">Sandbox (testes — dinheiro fictício)</option>
-          <option value="producao">Produção (cobranças reais)</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-grid" id="ma-bloco-login" style="border-top:1px dashed var(--line);margin:0 26px;padding:18px 0 0">
-      <div class="full" style="font-size:12.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:-4px">Acesso inicial da academia</div>
-      <div><label>Login (nome simples)</label><input id="ma-usuario" placeholder="powerbody"></div>
-      <div><label>E-mail real (recuperação de senha)</label><input id="ma-email" type="email" placeholder="contato@academia.com"></div>
-      <div class="full"><label>Senha inicial</label><input id="ma-senha" type="text" placeholder="Defina uma senha temporária"></div>
-    </div>
-    <div class="form-note">A academia entra digitando só o "login" (ex.: powerbody) + a senha. No primeiro acesso, ela é obrigada a trocar a senha. A chave Asaas é cadastrada depois, na tela de detalhe.</div>
-    <div class="modal-foot">
-      <button class="btn btn-primary" id="ma-salvar" onclick="salvarAcademia()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
-
-<script src="js/config.js?v=21"></script>
-<script src="js/app.js?v=21"></script>
-<script src="js/academias.js?v=22"></script>
-<script src="js/receitas.js?v=1"></script>
-<script src="js/dashboard-academia.js?v=1"></script>
-<script src="js/alunos-academia.js?v=4"></script>
-<script src="js/personais-academia.js?v=1"></script>
-<script src="js/financeiro-academia.js?v=3"></script>
-<script src="js/despesas-academia.js?v=1"></script>
-<script src="js/socios-academia.js?v=2"></script>
-<script src="js/config-academia.js?v=3"></script>
-<script src="js/relatorios-academia.js?v=4"></script>
-</body>
-</html>
+function baixarRelatorioPdf() {
+  const el = document.getElementById('rel-conteudo');
+  const nomeArquivo = `relatorio-${relAtual}-${document.getElementById('rel-ini').value}-a-${document.getElementById('rel-fim').value}.pdf`;
+  toast('Gerando PDF…');
+  html2pdf().set({
+    margin: 12,
+    filename: nomeArquivo,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+  }).from(el).save();
+}
