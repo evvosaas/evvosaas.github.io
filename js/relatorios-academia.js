@@ -12,11 +12,11 @@ function selecionarRelatorio(tipo, el) {
   document.querySelectorAll('#v-ac-relatorios .fchip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
 
-  const ehExtrato = tipo === 'extrato';
-  document.getElementById('rel-filtros-periodo').style.display = ehExtrato ? 'none' : 'flex';
-  document.getElementById('rel-filtros-aluno').style.display = ehExtrato ? 'flex' : 'none';
+  document.getElementById('rel-filtros-periodo').style.display = tipo === 'extrato' || tipo === 'alunos' ? 'none' : 'flex';
+  document.getElementById('rel-filtros-aluno').style.display = tipo === 'extrato' ? 'flex' : 'none';
+  document.getElementById('rel-filtros-nenhum').style.display = tipo === 'alunos' ? 'flex' : 'none';
 
-  if (ehExtrato) { popularSelectAlunos(); }
+  if (tipo === 'extrato') { popularSelectAlunos(); }
   else { gerarRelatorioAtual(); }
 }
 
@@ -26,6 +26,7 @@ function gerarRelatorioAtual() {
   if (relAtual === 'participacao') gerarRelatorioParticipacao();
   if (relAtual === 'inadimplentes') gerarRelatorioInadimplentes();
   if (relAtual === 'extrato') gerarRelatorioExtrato();
+  if (relAtual === 'alunos') gerarRelatorioAlunos();
 }
 
 function relPeriodoPadrao() {
@@ -402,6 +403,66 @@ async function gerarRelatorioExtrato() {
   `;
 }
 
+/* ---------------- RELATÓRIO DE ALUNOS ATIVOS/INATIVOS ---------------- */
+async function gerarRelatorioAlunos() {
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: alunos, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('vw_alunos_completo').select('*').order('nome'),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const lista = alunos || [];
+  const ativos = lista.filter(a => a.ativo !== false);
+  const inativos = lista.filter(a => a.ativo === false);
+  const comPersonal = ativos.filter(a => a.personal_id).length;
+
+  const linhaAluno = a => `
+    <tr>
+      <td>${esc(a.nome)}</td>
+      <td>${esc(a.plano)}</td>
+      <td>${a.personal ? esc(a.personal) : '—'}</td>
+      <td>${brl(a.mensalidade_total)}</td>
+      <td>${fmt(String(a.created_at).slice(0,10))}</td>
+    </tr>`;
+
+  const linhasAtivos = ativos.map(linhaAluno).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno ativo.</td></tr>';
+  const linhasInativos = inativos.map(linhaAluno).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno inativo.</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Alunos Ativos/Inativos</h2>
+      <div class="periodo">Situação atual da base de alunos</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+    </div>
+
+    <div class="rel-kpis">
+      <div class="rel-kpi"><div class="l">Ativos</div><div class="v" style="color:var(--ok)">${ativos.length}</div></div>
+      <div class="rel-kpi"><div class="l">Inativos</div><div class="v" style="color:var(--muted)">${inativos.length}</div></div>
+      <div class="rel-kpi"><div class="l">Com personal</div><div class="v">${comPersonal}</div></div>
+      <div class="rel-kpi"><div class="l">Total já cadastrado</div><div class="v">${lista.length}</div></div>
+    </div>
+
+    <div class="rel-section-title">Alunos ativos (${ativos.length})</div>
+    <table class="rel-table">
+      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
+      <tbody>${linhasAtivos}</tbody>
+    </table>
+
+    <div class="rel-section-title">Alunos inativos (${inativos.length})</div>
+    <table class="rel-table">
+      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
+      <tbody>${linhasInativos}</tbody>
+    </table>
+
+    <div class="rel-nota">Inclui todos os alunos já cadastrados na academia, independentemente de período.</div>
+  `;
+}
+
 /* ---------------- IMPRIMIR / PDF ---------------- */
 function imprimirRelatorio() {
   const conteudo = document.getElementById('rel-conteudo').innerHTML;
@@ -415,6 +476,8 @@ function baixarRelatorioPdf() {
   if (relAtual === 'extrato') {
     const nomeAluno = document.getElementById('rel-aluno-sel').selectedOptions[0]?.textContent.trim().replace(/\s+/g, '-') || 'aluno';
     nomeArquivo = `extrato-${nomeAluno}.pdf`;
+  } else if (relAtual === 'alunos') {
+    nomeArquivo = `relatorio-alunos-${new Date().toISOString().slice(0,10)}.pdf`;
   } else {
     nomeArquivo = `relatorio-${relAtual}-${document.getElementById('rel-ini').value}-a-${document.getElementById('rel-fim').value}.pdf`;
   }
