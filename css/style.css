@@ -208,6 +208,7 @@ tbody tr:hover{background:#fafafb}
 
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  html, body { background: #fff !important; }
   body * { visibility: hidden !important; }
   #print-area { display: block !important; visibility: visible !important; position: absolute; top: 0; left: 0; width: 100%; padding: 0; }
   #print-area * { visibility: visible !important; }
