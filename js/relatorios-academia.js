@@ -494,30 +494,9 @@ async function gerarRelatorioAlunos() {
   `;
 }
 
-/* ---------------- IMPRIMIR / PDF ---------------- */
+/* ---------------- IMPRIMIR ---------------- */
 function imprimirRelatorio() {
   const conteudo = document.getElementById('rel-conteudo').innerHTML;
   document.getElementById('print-area').innerHTML = conteudo;
   window.print();
-}
-
-function baixarRelatorioPdf() {
-  const el = document.getElementById('rel-conteudo');
-  let nomeArquivo;
-  if (relAtual === 'extrato') {
-    const nomeAluno = document.getElementById('rel-aluno-sel').selectedOptions[0]?.textContent.trim().replace(/\s+/g, '-') || 'aluno';
-    nomeArquivo = `extrato-${nomeAluno}.pdf`;
-  } else if (relAtual === 'alunos') {
-    nomeArquivo = `relatorio-alunos-${new Date().toISOString().slice(0,10)}.pdf`;
-  } else {
-    nomeArquivo = `relatorio-${relAtual}-${document.getElementById('rel-ini').value}-a-${document.getElementById('rel-fim').value}.pdf`;
-  }
-  toast('Gerando PDF…');
-  html2pdf().set({
-    margin: 12,
-    filename: nomeArquivo,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-  }).from(el).save();
 }
