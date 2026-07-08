@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=18">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -44,9 +44,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
       <span>Academias</span>
     </div>
+    <div class="nav-item" onclick="go('receitas',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>
+      <span>Minhas receitas</span>
+    </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.9<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v3.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -78,7 +82,11 @@
     </div>
     <div class="card">
       <div class="filters">
-        <div class="search" style="margin-left:0;max-width:320px"><input id="acad-q" placeholder="Buscar por nome…" oninput="renderAcademias()"></div>
+        <div class="fchip active" onclick="filtraAcadStatus('todas',this)">Todas</div>
+        <div class="fchip" onclick="filtraAcadStatus('ativa',this)">Ativas</div>
+        <div class="fchip" onclick="filtraAcadStatus('inativa',this)">Inativas</div>
+        <div class="fchip" onclick="filtraAcadStatus('configurando',this)">Configurando</div>
+        <div class="search"><input id="acad-q" placeholder="Buscar por nome…" oninput="renderAcademias()"></div>
       </div>
       <table>
         <thead><tr><th>Academia</th><th>Responsável</th><th>Plano Evvo</th><th>Asaas</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
@@ -120,15 +128,52 @@
           <div class="card-head"><h2>Ações</h2></div>
           <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
             <button class="btn btn-ghost" style="justify-content:center" onclick="resetarSenhaAcademia()">🔑 Enviar redefinição de senha</button>
+            <button class="btn btn-ghost" style="justify-content:center" onclick="abrirRegistrarPagamentoAc(acadDetalheId)">💰 Registrar pagamento recebido</button>
             <button class="btn btn-danger" style="justify-content:center" onclick="toggleStatusAcademia()">⏸ Ativar/Inativar academia</button>
+            <button class="btn btn-danger" style="justify-content:center;border-color:var(--late);color:var(--late)" onclick="excluirAcademiaCompleta()">🗑 Excluir academia (definitivo)</button>
           </div>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- ============ MINHAS RECEITAS ============ -->
+  <section class="view" id="v-receitas">
+    <div class="topbar">
+      <div><h1>Minhas receitas</h1><div class="sub">O que as academias pagam pelo Evvo</div></div>
+      <button class="btn btn-primary" onclick="abrirRegistrarPagamentoAc(null)">+ Registrar pagamento</button>
+    </div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi green"><div class="label">Recebido no mês</div><div class="value" id="rec-mes">—</div><div class="delta">registrado manualmente</div></div>
+      <div class="kpi grad"><div class="label">Recebido no total</div><div class="value" id="rec-total">—</div><div class="delta">desde o início</div></div>
+      <div class="kpi blue"><div class="label">MRR atual</div><div class="value" id="rec-mrr">—</div><div class="delta">soma das mensalidades ativas</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Histórico de pagamentos</h2></div>
+      <table>
+        <thead><tr><th>Academia</th><th>Valor</th><th>Pago em</th><th>Observação</th><th style="text-align:right">Ações</th></tr></thead>
+        <tbody id="rec-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
 </main>
 </div>
 
+<!-- ================= MODAL REGISTRAR PAGAMENTO (academia → Evvo) ================= -->
+<div class="overlay" id="m-registrar-pag">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Registrar pagamento</div><button class="close" onclick="closeModal('m-registrar-pag')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Academia</label><select id="rp-academia"></select></div>
+      <div><label>Valor (R$)</label><input type="number" id="rp-valor" min="0" step="0.01"></div>
+      <div><label>Data do pagamento</label><input type="date" id="rp-data"></div>
+      <div class="full"><label>Observação (opcional)</label><input id="rp-obs" placeholder="Ex.: mensalidade de julho, via PIX"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="salvarPagamentoAc()">Registrar</button>
+    </div>
+  </div>
+</div>
 <!-- ================= PAINEL DA ACADEMIA ================= -->
 <div id="app-academia" style="display:none">
 <aside>
@@ -167,7 +212,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.9<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v3.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -624,9 +669,10 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=17"></script>
-<script src="js/app.js?v=17"></script>
-<script src="js/academias.js?v=17"></script>
+<script src="js/config.js?v=18"></script>
+<script src="js/app.js?v=18"></script>
+<script src="js/academias.js?v=18"></script>
+<script src="js/receitas.js?v=1"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=3"></script>
 <script src="js/personais-academia.js?v=1"></script>
