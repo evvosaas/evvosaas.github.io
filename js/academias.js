@@ -5,6 +5,7 @@
 let ACADEMIAS = [];
 let acadEditId = null;
 let acadDetalheId = null;
+let acadFiltroStatus = 'todas';
 
 /* ---------------- VISÃO GERAL ---------------- */
 async function carregarVisaoGeral() {
@@ -59,9 +60,18 @@ async function carregarAcademias() {
   renderAcademias();
 }
 
+function filtraAcadStatus(s, el) {
+  acadFiltroStatus = s;
+  document.querySelectorAll('#v-academias .fchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderAcademias();
+}
+
 function renderAcademias() {
   const q = (document.getElementById('acad-q')?.value || '').toLowerCase();
-  const lista = ACADEMIAS.filter(a => (a.nome || '').toLowerCase().includes(q));
+  const lista = ACADEMIAS
+    .filter(a => (a.nome || '').toLowerCase().includes(q))
+    .filter(a => acadFiltroStatus === 'todas' ? true : a.status === acadFiltroStatus);
 
   document.getElementById('acad-sub').textContent =
     `${ACADEMIAS.filter(a => a.status === 'ativa').length} ativas · ${ACADEMIAS.filter(a => a.status !== 'ativa').length} outras`;
@@ -294,4 +304,29 @@ async function resetarSenhaAcademia() {
     redirectTo: 'https://evvosaas.github.io/',
   });
   toast(error ? 'Erro: ' + error.message : 'E-mail de redefinição enviado ✓');
+}
+
+/* ---------------- EXCLUIR ACADEMIA (definitivo) ---------------- */
+async function excluirAcademiaCompleta() {
+  const a = ACADEMIAS.find(x => x.id === acadDetalheId);
+  if (!a) return;
+
+  const digitado = prompt(`Esta ação é IRREVERSÍVEL: apaga a academia "${a.nome}", o login dela, e TODOS os dados (alunos, faturas, financeiro, tudo).\n\nDigite o nome exato da academia para confirmar:`);
+  if (digitado !== a.nome) {
+    if (digitado !== null) toast('Nome não confere — exclusão cancelada.');
+    return;
+  }
+
+  toast('Excluindo academia…');
+  const { data, error } = await db.functions.invoke('excluir-academia', {
+    body: { academia_id: a.id },
+  });
+  if (error || data?.erro) {
+    let msg = data?.erro || error.message;
+    try { const b = await error?.context?.json?.(); if (b?.erro) msg = b.erro; } catch (_) {}
+    toast('Erro ao excluir: ' + msg);
+    return;
+  }
+  toast(`Academia "${a.nome}" excluída ✓`);
+  go('academias', document.querySelectorAll('.nav-item')[1]);
 }
