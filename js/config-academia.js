@@ -155,9 +155,15 @@ function renderIntegracaoAc(academia) {
           Passo 1 — Chave da API do Asaas
         </div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.6">
-          No painel Asaas da sua academia: <b>Configurações → Integrações → Chaves de API</b> →
-          copie a chave (começa com <code>$aact_</code>) e cole aqui.
+          No painel Asaas da sua academia: <b>Configurações → Integrações → Chaves de API</b>.
         </p>
+        <ol style="font-size:13px;color:var(--ink);line-height:1.9;margin:0 0 14px 18px;padding:0">
+          <li>Clique em <b>"Gerar chave de API"</b></li>
+          <li>Dê um nome para a chave (ex.: "Evvo") — data/hora de expiração são opcionais, pode deixar em branco</li>
+          <li><b>Não marque</b> a opção de saque via API (Pix/Ted/Pague Contas) — o Evvo não precisa disso</li>
+          <li>Clique em <b>Avançar</b> — o Asaas vai pedir um <b>código por SMS</b> no seu celular cadastrado; clique em "Enviar código", digite o código recebido e confirme</li>
+          <li>Copie a chave gerada (começa com <code>$aact_</code>) e cole no campo abaixo</li>
+        </ol>
         ${temChave
           ? `<div class="chave-box"><span>••••••••${esc(academia.asaas_api_key.slice(-4))}</span>
               <div class="chave-acts"><button class="icon-btn" onclick="editarChaveAsaasAc()">✎</button></div></div>`
@@ -186,6 +192,8 @@ function renderIntegracaoAc(academia) {
           <li><b>Token de autenticação:</b> use o gerado abaixo (mínimo 32 caracteres — exigência do Asaas)</li>
           <li><b>Tipo de envio:</b> Sequencial</li>
           <li><b>Eventos:</b> marque apenas <code>PAYMENT_RECEIVED</code>, <code>PAYMENT_CONFIRMED</code>, <code>PAYMENT_OVERDUE</code> e <code>PAYMENT_DELETED</code></li>
+          <li>Clique em <b>Salvar</b> lá no Asaas</li>
+          <li style="color:var(--brand);font-weight:700">Importante: cole esse MESMO token no campo abaixo e clique em "Salvar" AQUI no Evvo também — sem isso, o sistema não reconhece o aviso de pagamento do Asaas</li>
         </ol>
         ${temToken
           ? `<div class="chave-box"><span>••••••••${esc(academia.asaas_webhook_token.slice(-4))}</span>
