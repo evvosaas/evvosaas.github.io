@@ -104,6 +104,8 @@ function abrirAcademia(id) {
   document.getElementById('ma-plano').value = a?.plano_evvo || 'Básico';
   document.getElementById('ma-valor').value = a ? Number(a.valor_mensalidade).toFixed(2) : '149.00';
   document.getElementById('ma-dia').value = a?.dia_vencimento_evvo || 5;
+  document.getElementById('ma-ambiente').value =
+    a?.asaas_base_url === 'https://api.asaas.com/v3' ? 'producao' : 'sandbox';
 
   // login só aparece na criação (depois vira um processo de convite)
   const blocoLogin = document.getElementById('ma-bloco-login');
@@ -130,6 +132,8 @@ async function salvarAcademia() {
     plano_evvo: document.getElementById('ma-plano').value,
     valor_mensalidade: parseFloat(document.getElementById('ma-valor').value) || 0,
     dia_vencimento_evvo: parseInt(document.getElementById('ma-dia').value) || 5,
+    asaas_base_url: document.getElementById('ma-ambiente').value === 'producao'
+      ? 'https://api.asaas.com/v3' : 'https://api-sandbox.asaas.com/v3',
   };
 
   const btn = document.getElementById('ma-salvar');
@@ -190,6 +194,10 @@ async function abrirDetalhe(id) {
   document.getElementById('det-nome').textContent = a.nome;
   document.getElementById('det-loc').textContent = `${a.cidade_uf || '—'} · responsável: ${a.responsavel || '—'}`;
   document.getElementById('det-cpfcnpj').textContent = a.cpf_cnpj || '—';
+  const ehProducao = a.asaas_base_url === 'https://api.asaas.com/v3';
+  document.getElementById('det-ambiente').innerHTML = ehProducao
+    ? '<span class="badge b-late">⚠ Produção — cobranças reais</span>'
+    : '<span class="badge b-off">Sandbox — testes</span>';
   document.getElementById('det-avatar').textContent = ini(a.nome);
   document.getElementById('det-status').innerHTML = statusBadge(a.status);
 
