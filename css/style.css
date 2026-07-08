@@ -208,7 +208,8 @@ tbody tr:hover{background:#fafafb}
 
 @media print {
   body * { visibility: hidden !important; }
-  #print-area, #print-area * { visibility: visible !important; }
-  #print-area { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; }
+  #print-area { display: block !important; visibility: visible !important; position: absolute; top: 0; left: 0; width: 100%; padding: 20px; }
+  #print-area * { visibility: visible !important; }
   @page { margin: 15mm; }
 }
+#print-area { display: none; }
