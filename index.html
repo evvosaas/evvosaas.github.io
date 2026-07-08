@@ -6,9 +6,8 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=22">
+<link rel="stylesheet" href="css/style.css?v=23">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -51,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.5<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.6<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -238,7 +237,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.5<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.6<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -485,16 +484,16 @@
           <span>—</span>
           <input type="date" id="rel-fim" onchange="gerarRelatorioAtual()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
-        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir / Salvar PDF</button>
+        
       </div>
       <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-aluno">
         <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600;flex:1;min-width:220px;max-width:340px">
           <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;flex:none">Aluno</span>
           <select id="rel-aluno-sel" onchange="gerarRelatorioExtrato()" style="border:none;background:transparent;font-size:13px;font-weight:600;flex:1;width:100%"></select>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
-        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir / Salvar PDF</button>
+        
       </div>
       <div style="padding:14px 20px;display:none;gap:16px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);background:var(--card2)" id="rel-alunos-colunas">
         <span style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700">Colunas do relatório:</span>
@@ -516,8 +515,8 @@
             <option value="inativos">Somente inativos</option>
           </select>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()" style="margin-left:auto">🖨 Imprimir</button>
-        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()" style="margin-left:auto">🖨 Imprimir / Salvar PDF</button>
+        
       </div>
       <div style="padding:26px 30px;overflow-x:auto">
         <div id="rel-conteudo" style="max-width:720px;margin:0 auto"></div>
@@ -778,6 +777,6 @@
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
 <script src="js/config-academia.js?v=4"></script>
-<script src="js/relatorios-academia.js?v=8"></script>
+<script src="js/relatorios-academia.js?v=9"></script>
 </body>
 </html>
