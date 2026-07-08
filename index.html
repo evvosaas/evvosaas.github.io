@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v3.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v3.4<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -114,6 +114,7 @@
           <div class="li"><span class="k">CPF/CNPJ</span><span class="v" id="det-cpfcnpj">—</span></div>
           <div class="li"><span class="k">WhatsApp</span><span class="v" id="det-whatsapp">—</span></div>
           <div class="li"><span class="k">Alunos cadastrados</span><span class="v" id="det-alunos">—</span></div>
+          <div class="li"><span class="k">Ambiente Asaas</span><span class="v" id="det-ambiente">—</span></div>
           <div class="li"><span class="k">Chave API do Asaas</span><span class="v" id="det-chave-box">—</span></div>
           <div class="li"><span class="k">Cliente desde</span><span class="v" id="det-criado">—</span></div>
         </div>
@@ -232,7 +233,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v3.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v3.4<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -673,6 +674,12 @@
       </div>
       <div><label>Valor mensal (R$)</label><input type="number" id="ma-valor" min="0" step="0.01"></div>
       <div><label>Dia de vencimento</label><input type="number" id="ma-dia" min="1" max="28"></div>
+      <div class="full"><label>Ambiente Asaas desta academia</label>
+        <select id="ma-ambiente">
+          <option value="sandbox">Sandbox (testes — dinheiro fictício)</option>
+          <option value="producao">Produção (cobranças reais)</option>
+        </select>
+      </div>
     </div>
     <div class="form-grid" id="ma-bloco-login" style="border-top:1px dashed var(--line);margin:0 26px;padding:18px 0 0">
       <div class="full" style="font-size:12.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:-4px">Acesso inicial da academia</div>
@@ -691,7 +698,7 @@
 
 <script src="js/config.js?v=20"></script>
 <script src="js/app.js?v=20"></script>
-<script src="js/academias.js?v=20"></script>
+<script src="js/academias.js?v=21"></script>
 <script src="js/receitas.js?v=1"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=3"></script>
