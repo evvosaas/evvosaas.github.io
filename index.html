@@ -6,7 +6,7 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=17">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v2.9<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -103,6 +103,7 @@
         <div class="info-list">
           <div class="li"><span class="k">Login (usuário)</span><span class="v" id="det-usuario-login">—</span></div>
           <div class="li"><span class="k">E-mail de login</span><span class="v" id="det-email-login">—</span></div>
+          <div class="li"><span class="k">CPF/CNPJ</span><span class="v" id="det-cpfcnpj">—</span></div>
           <div class="li"><span class="k">WhatsApp</span><span class="v" id="det-whatsapp">—</span></div>
           <div class="li"><span class="k">Alunos cadastrados</span><span class="v" id="det-alunos">—</span></div>
           <div class="li"><span class="k">Chave API do Asaas</span><span class="v" id="det-chave-box">—</span></div>
@@ -166,7 +167,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v2.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v2.9<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -475,6 +476,21 @@
   </div>
 </div>
 
+<!-- ================= MODAL REDEFINIR SENHA (link de recuperação) ================= -->
+<div class="overlay" id="m-redefinir-senha">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Definir nova senha</div></div>
+    <div style="padding:22px 26px">
+      <div class="sub" style="margin-bottom:16px">Você chegou aqui por um link de redefinição de senha. Escolha sua nova senha abaixo.</div>
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Nova senha</label>
+      <input id="rs-nova-senha" type="password" placeholder="••••••••" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="salvarNovaSenhaRecuperacao()">Salvar nova senha</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL PRIMEIRO ACESSO (bloqueante) ================= -->
 <div class="overlay" id="m-primeiro-acesso">
   <div class="modal">
@@ -584,6 +600,7 @@
     <div class="form-grid">
       <div class="full"><label>Nome da academia *</label><input id="ma-nome" placeholder="Ex.: Power Body"></div>
       <div><label>Cidade / UF</label><input id="ma-cidade" placeholder="Cascavel-PR"></div>
+      <div><label>CPF ou CNPJ</label><input id="ma-cpfcnpj" placeholder="000.000.000-00 ou 00.000.000/0001-00"></div>
       <div><label>Responsável</label><input id="ma-resp" placeholder="Nome do dono"></div>
       <div><label>WhatsApp</label><input id="ma-zap" placeholder="44999990000"></div>
       <div><label>Plano Evvo</label>
@@ -607,9 +624,9 @@
 
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
-<script src="js/config.js?v=16"></script>
-<script src="js/app.js?v=16"></script>
-<script src="js/academias.js?v=16"></script>
+<script src="js/config.js?v=17"></script>
+<script src="js/app.js?v=17"></script>
+<script src="js/academias.js?v=17"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=3"></script>
 <script src="js/personais-academia.js?v=1"></script>
