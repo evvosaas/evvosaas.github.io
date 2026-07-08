@@ -162,6 +162,7 @@ function finBaixaManualAc(id) {
   document.getElementById('ac-mb-aluno').value = `${acFinFatSel.aluno} — fatura de ${brl(acFinFatSel.valor_total)}`;
   document.getElementById('ac-mb-valor').value = Number(acFinFatSel.valor_total).toFixed(2);
   document.getElementById('ac-mb-obs').value = '';
+  document.getElementById('ac-mb-forma').value = 'dinheiro';
   document.getElementById('ac-mb-aviso').style.display = 'none';
   openModal('m-baixa-ac');
 }
@@ -194,7 +195,8 @@ async function finSalvarBaixaAc() {
   btn.disabled = true; toast('Registrando baixa…');
 
   const { data, error } = await db.functions.invoke('gerenciar-fatura', {
-    body: { acao: 'baixa', mensalidade_id: acFinFatSel.id, valor_pago: valor, observacao: obs },
+    body: { acao: 'baixa', mensalidade_id: acFinFatSel.id, valor_pago: valor, observacao: obs,
+            forma_detalhe: document.getElementById('ac-mb-forma').value },
   });
   btn.disabled = false;
   if (error || data?.erro) {
