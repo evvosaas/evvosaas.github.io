@@ -263,18 +263,21 @@ function mostrarFaturaAc(aluno, m) {
 
   const links = document.getElementById('ac-mf-links');
   const zap = (aluno.whatsapp || '').replace(/\D/g, '');
+  const linkPagina = m.token_publico
+    ? `${EVVO_CONFIG.PAGINA_FATURA}?t=${m.token_publico}`
+    : m.url_fatura;
   const msg = encodeURIComponent(
     `*${document.getElementById('ac-nome-academia').textContent.toUpperCase()} - FATURA*\n\n` +
     `Olá, ${aluno.nome.split(' ')[0]}!\n` +
     `Sua fatura já está disponível:\n\n` +
     `Valor: *${brl(m.valor_total ?? (Number(m.valor_academia) + Number(m.valor_personal)))}*\n` +
     `Vencimento: ${fmt(m.vencimento)}\n\n` +
-    `Pague por boleto ou PIX no link:\n${m.url_fatura}\n\n` +
+    `Pague por boleto ou PIX no link:\n${linkPagina}\n\n` +
     `Qualquer dúvida é só chamar!`
   );
 
   links.innerHTML = `
-    ${m.url_fatura ? `<a class="btn btn-primary" href="${m.url_fatura}" target="_blank">🔗 Abrir fatura</a>` : ''}
+    ${linkPagina ? `<a class="btn btn-primary" href="${linkPagina}" target="_blank">🔗 Abrir página da fatura</a>` : ''}
     ${zap ? `<a class="btn btn-primary" style="background:var(--ok)" href="https://wa.me/55${zap}?text=${msg}" target="_blank">💬 Enviar no WhatsApp do aluno</a>`
           : '<div class="hint">Aluno sem WhatsApp cadastrado.</div>'}
     ${(m.url_boleto || m.url_fatura) ? `<a class="btn btn-ghost" href="${m.url_boleto || m.url_fatura}" target="_blank">📄 PDF do boleto</a>` : ''}
