@@ -108,6 +108,21 @@ async function resolverEntrada() {
   }
 
   if (perfil.role === 'master') { entrarMaster(perfil.nome); return; }
+
+  // Academia: bloqueia o acesso se não estiver ativa (pausada pelo master)
+  const { data: academiaCheck } = await db.from('academias')
+    .select('status').eq('id', perfil.academia_id).maybeSingle();
+  if (academiaCheck?.status !== 'ativa') {
+    document.getElementById('tela-login').style.display = 'flex';
+    document.getElementById('lg-erro').textContent =
+      'Sua academia está temporariamente inativa. Entre em contato com o suporte do Evvo.';
+    document.getElementById('lg-erro').style.display = 'block';
+    document.getElementById('lg-btn').disabled = false;
+    document.getElementById('lg-btn').textContent = 'ENTRAR';
+    await db.auth.signOut();
+    return;
+  }
+
   entrarAcademia(perfil);
 }
 
