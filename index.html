@@ -51,7 +51,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.4<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -238,7 +238,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.4<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -495,6 +495,17 @@
         </div>
         <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
+      </div>
+      <div style="padding:14px 20px;display:none;gap:16px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);background:var(--card2)" id="rel-alunos-colunas">
+        <span style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700">Colunas do relatório:</span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-cpf" checked onchange="gerarRelatorioAlunos()">CPF</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-whatsapp" checked onchange="gerarRelatorioAlunos()">WhatsApp</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-email" onchange="gerarRelatorioAlunos()">E-mail</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-plano" checked onchange="gerarRelatorioAlunos()">Plano</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-personal" checked onchange="gerarRelatorioAlunos()">Personal</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-valor-plano" checked onchange="gerarRelatorioAlunos()">Valor do plano</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-valor-personal" checked onchange="gerarRelatorioAlunos()">Valor do personal</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-cadastro" checked onchange="gerarRelatorioAlunos()">Cadastrado em</label>
       </div>
       <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-nenhum">
         <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
@@ -766,6 +777,6 @@
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
 <script src="js/config-academia.js?v=3"></script>
-<script src="js/relatorios-academia.js?v=7"></script>
+<script src="js/relatorios-academia.js?v=8"></script>
 </body>
 </html>
