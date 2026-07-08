@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Evvo — Sua fatura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#f7f7f9; --card:#fff; --card2:#f4f5f7; --line:#e6e8ec;
+  --ink:#1b1b22; --muted:#8b8f99;
+  --sidebar:#141418;
+  --brand-a:#ff7a1a; --brand-b:#ff2d78; --brand:#ff5a2b;
+  --grad:linear-gradient(90deg,#ff7a1a 0%,#ff2d78 100%);
+  --grad-135:linear-gradient(135deg,#ff7a1a 0%,#ff2d78 100%);
+  --ok:#12a150; --ok-bg:#e5f6ec; --warn:#c67c00; --warn-bg:#fbf0d8;
+  --late:#e0384a; --late-bg:#fce8ea; --info:#2b6bd9; --info-bg:#e7eefc;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--sidebar);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 0 40px}
+
+.hero{width:100%;background:linear-gradient(160deg,#141418 0%,#1c1c22 100%);padding:34px 20px 74px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.hero .mark{width:44px;height:44px;border-radius:12px;background:var(--grad-135);display:flex;align-items:center;justify-content:center;font-family:'Archivo';font-weight:900;color:#fff;font-size:22px;margin-bottom:4px}
+.hero .academia{font-family:'Archivo';font-weight:900;font-stretch:110%;font-size:22px;color:#fff;letter-spacing:.3px}
+.hero .tag{color:#8b8f99;font-size:11.5px;letter-spacing:1px;text-transform:uppercase}
+
+.fatura{width:min(430px,calc(100% - 28px));background:#fff;border-radius:22px;margin-top:-54px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.f-head{padding:22px 22px 16px;text-align:center;border-bottom:1px dashed var(--line)}
+.f-head .ola{font-size:14px;color:var(--muted)}
+.f-head .nome{font-family:'Archivo';font-weight:800;font-size:20px;margin:2px 0 10px}
+.badge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:99px;font-size:12.5px;font-weight:800}
+.badge::before{content:'';width:8px;height:8px;border-radius:50%;background:currentColor}
+.b-warn{background:var(--warn-bg);color:var(--warn)}
+.b-late{background:var(--late-bg);color:var(--late)}
+.b-ok{background:var(--ok-bg);color:var(--ok)}
+.b-off{background:#eef1ef;color:var(--muted)}
+
+.f-valor{text-align:center;padding:18px 22px 6px}
+.f-valor .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.f-valor .num{font-family:'Archivo';font-weight:900;font-size:42px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-1px}
+.f-valor .venc{font-size:13.5px;color:var(--muted);margin-top:2px}
+.f-valor .venc b{color:var(--ink)}
+.f-valor .venc.atrasada b{color:var(--late)}
+
+.f-comp{margin:16px 22px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.f-comp .row{display:flex;justify-content:space-between;padding:11px 15px;font-size:13.5px;border-bottom:1px solid var(--line)}
+.f-comp .row:last-child{border-bottom:none}
+.f-comp .lbl{color:var(--muted)}
+.f-comp .lbl b{color:var(--ink)}
+
+.pagto{padding:6px 22px 26px}
+.pagto h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:800;margin:14px 0 12px;text-align:center}
+.metodo{border:1.5px solid var(--line);border-radius:16px;margin-bottom:14px;overflow:hidden}
+.metodo summary{list-style:none;display:flex;align-items:center;gap:13px;padding:16px;cursor:pointer;user-select:none}
+.metodo summary::-webkit-details-marker{display:none}
+.metodo .mic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.mic.pix{background:#fdece0}
+.mic.bol{background:#eef1ef}
+.mic.car{background:#e7eefc}
+.metodo .mt{flex:1}
+.metodo .mt b{display:block;font-size:15px}
+.metodo .mt span{font-size:12.5px;color:var(--muted)}
+.metodo .seta{color:var(--muted);transition:.2s}
+.metodo[open] .seta{transform:rotate(90deg)}
+.metodo[open]{border-color:var(--brand)}
+.m-body{padding:16px 16px 18px;border-top:1px dashed var(--line)}
+
+#qrcode{width:180px;height:180px;margin:0 auto 14px;border-radius:14px;border:1px solid var(--line);padding:10px;display:flex;align-items:center;justify-content:center;background:#fff}
+#qrcode img,#qrcode canvas{width:100%!important;height:100%!important}
+.copiavel{font-family:'JetBrains Mono';font-size:11px;background:var(--card2);border:1px dashed #c8d2cb;border-radius:12px;padding:12px 14px;word-break:break-all;color:#3c4a42;max-height:70px;overflow:hidden;margin-bottom:12px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Inter';transition:.15s;text-decoration:none;color:inherit}
+.btn-primary{background:var(--grad);color:#fff}
+.btn-primary:active{transform:scale(.98)}
+.btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);margin-top:10px}
+.linha-dig{font-family:'JetBrains Mono';font-size:12.5px;font-weight:700;background:var(--card2);border:1px dashed #c8d2cb;border-radius:12px;padding:13px;text-align:center;word-break:break-all;margin-bottom:12px}
+
+.estado-box{padding:14px 22px 34px;text-align:center;display:none}
+.estado-box .icone{width:84px;height:84px;border-radius:50%;font-size:42px;display:flex;align-items:center;justify-content:center;margin:6px auto 16px}
+.estado-box h2{font-family:'Archivo';font-size:22px;margin-bottom:6px}
+.estado-box p{font-size:14px;color:var(--muted);line-height:1.7}
+.aviso-atraso{margin:0 22px 4px;padding:12px 15px;background:var(--late-bg);color:var(--late);border-radius:12px;font-size:13px;font-weight:600;display:none;text-align:center}
+
+.foot{width:min(430px,calc(100% - 28px));text-align:center;color:#8b8f99;font-size:12px;margin-top:22px;line-height:1.8}
+.foot .evvo{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.foot .evvo .m{width:16px;height:16px;border-radius:4px;background:var(--grad-135);display:inline-block}
+.carregando-box{padding:60px 20px;text-align:center;color:var(--muted);font-size:14px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,120px);background:var(--sidebar);color:#fff;padding:14px 22px;border-radius:12px;font-size:14px;font-weight:600;z-index:99;opacity:0;transition:.3s;white-space:nowrap}
+.toast.show{transform:translate(-50%,0);opacity:1}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="mark">V</div>
+  <div class="academia" id="h-academia">—</div>
+  <div class="tag">fatura via Evvo</div>
+</div>
+
+<div class="fatura">
+  <div class="carregando-box" id="carregando">Carregando sua fatura…</div>
+
+  <div id="conteudo" style="display:none">
+    <div class="f-head">
+      <div class="ola">Olá,</div>
+      <div class="nome" id="f-nome">—</div>
+      <span class="badge b-warn" id="f-badge">—</span>
+    </div>
+
+    <div class="aviso-atraso" id="f-aviso">
+      ⚠ Esta fatura está vencida. Regularize para manter seu acesso em dia — se já pagou, desconsidere.
+    </div>
+
+    <div class="f-valor">
+      <div class="lbl" id="f-comp-lbl">Mensalidade</div>
+      <div class="num" id="f-valor">—</div>
+      <div class="venc" id="f-venc">—</div>
+    </div>
+
+    <div class="f-comp" id="f-composicao"></div>
+
+    <div class="pagto" id="area-pagto">
+      <h3>Escolha como pagar</h3>
+
+      <details class="metodo" open id="met-pix">
+        <summary>
+          <div class="mic pix">◆</div>
+          <div class="mt"><b>PIX</b><span>Aprovação na hora</span></div>
+          <div class="seta">›</div>
+        </summary>
+        <div class="m-body">
+          <div id="qrcode"></div>
+          <div class="copiavel" id="f-pix"></div>
+          <button class="btn btn-primary" onclick="copiar('f-pix','Código PIX copiado ✓ Cole no app do seu banco')">Copiar código PIX</button>
+        </div>
+      </details>
+
+      <details class="metodo" id="met-boleto">
+        <summary>
+          <div class="mic bol">▮▮</div>
+          <div class="mt"><b>Boleto bancário</b><span>Compensa em até 1 dia útil</span></div>
+          <div class="seta">›</div>
+        </summary>
+        <div class="m-body">
+          <div class="linha-dig" id="f-linha"></div>
+          <button class="btn btn-primary" onclick="copiar('f-linha','Linha digitável copiada ✓')">Copiar linha digitável</button>
+          <a class="btn btn-ghost" id="f-pdf" target="_blank" rel="noopener">📄 Baixar / imprimir boleto</a>
+        </div>
+      </details>
+
+      <details class="metodo" id="met-cartao" style="display:none">
+        <summary>
+          <div class="mic car">💳</div>
+          <div class="mt"><b>Cartão de crédito</b><span>Pague online agora</span></div>
+          <div class="seta">›</div>
+        </summary>
+        <div class="m-body">
+          <a class="btn btn-primary" id="f-cartao-btn" target="_blank" rel="noopener">Pagar no cartão</a>
+          <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:10px">Pagamento processado em ambiente seguro (Asaas). Seus dados de cartão não passam pela academia.</div>
+        </div>
+      </details>
+    </div>
+
+    <div class="estado-box" id="box-pago">
+      <div class="icone" style="background:var(--ok-bg);color:var(--ok)">✓</div>
+      <h2>Pagamento confirmado!</h2>
+      <p id="pago-txt">—</p>
+    </div>
+
+    <div class="estado-box" id="box-cancelada">
+      <div class="icone" style="background:#eef1ef;color:var(--muted)">✕</div>
+      <h2>Fatura cancelada</h2>
+      <p>Esta cobrança foi cancelada e não deve ser paga.<br>Em caso de dúvida, fale com a academia.</p>
+    </div>
+  </div>
+
+  <div class="estado-box" id="box-erro">
+    <div class="icone" style="background:var(--late-bg);color:var(--late)">!</div>
+    <h2>Fatura não encontrada</h2>
+    <p>Este link parece inválido ou expirado.<br>Peça um novo link para a academia.</p>
+  </div>
+</div>
+
+<div class="foot">
+  <span class="evvo"><span class="m"></span> Evvo</span> · gestão de academias<br>
+  <span style="opacity:.7">Pagamentos processados com segurança via Asaas · fatura v1</span>
+</div>
+
+<div class="toast" id="toast">ok</div>
+
+<script src="js/config.js?v=1"></script>
+<script>
+const db = supabase.createClient(EVVO_CONFIG.SUPABASE_URL, EVVO_CONFIG.SUPABASE_ANON);
+const brl = v => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+const fmt = d => { if (!d) return '—'; const [a, m, dd] = String(d).slice(0, 10).split('-'); return `${dd}/${m}/${a}`; };
+
+let tt;
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2400); }
+function copiar(id,msg){
+  const txt=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast(msg)).catch(()=>toast('Segure e copie o texto manualmente.'));
+}
+
+async function carregar(){
+  const token = new URLSearchParams(location.search).get('t');
+  const carregando = document.getElementById('carregando');
+
+  if (!token) { carregando.style.display='none'; document.getElementById('box-erro').style.display='block'; return; }
+
+  const { data, error } = await db.rpc('fn_fatura_publica', { p_token: token });
+  const f = data && data[0];
+  carregando.style.display='none';
+
+  if (error || !f) { document.getElementById('box-erro').style.display='block'; return; }
+
+  document.getElementById('conteudo').style.display='block';
+  document.getElementById('h-academia').textContent = f.nome_academia || 'Evvo';
+
+  const comp = String(f.competencia).slice(0,7).split('-').reverse().join('/');
+  document.getElementById('f-nome').textContent = f.aluno;
+  document.getElementById('f-comp-lbl').textContent = 'Mensalidade ' + comp;
+  document.getElementById('f-valor').textContent = brl(f.valor_total);
+
+  let compHtml = `<div class="row"><span class="lbl">Plano <b>${f.plano}</b></span><span>${brl(f.valor_academia)}</span></div>`;
+  if (Number(f.valor_personal) > 0) {
+    compHtml += `<div class="row"><span class="lbl">Personal trainer <b>${f.personal || ''}</b></span><span>${brl(f.valor_personal)}</span></div>`;
+  }
+  document.getElementById('f-composicao').innerHTML = compHtml;
+
+  const badge = document.getElementById('f-badge');
+  const venc  = document.getElementById('f-venc');
+
+  if (f.status === 'pago') {
+    badge.className='badge b-ok'; badge.textContent='Paga · obrigado!';
+    venc.innerHTML = 'Pago em: <b>' + fmt(String(f.pago_em).slice(0,10)) + '</b>';
+    document.getElementById('area-pagto').style.display='none';
+    document.getElementById('box-pago').style.display='block';
+    const formaTxt = { pix:'PIX', boleto:'boleto', cartao:'cartão', manual:'pagamento na academia' }[f.forma_pagamento] || '';
+    document.getElementById('pago-txt').innerHTML =
+      `Recebemos <b>${brl(f.valor_pago ?? f.valor_total)}</b> em <b>${fmt(String(f.pago_em).slice(0,10))}</b>${formaTxt ? ' via <b>'+formaTxt+'</b>' : ''}.<br>` +
+      `Sua mensalidade ${comp} está em dia.<br>Obrigado e bons treinos!`;
+    return;
+  }
+
+  if (f.status === 'cancelado') {
+    badge.className='badge b-off'; badge.textContent='Cancelada';
+    venc.innerHTML = '';
+    document.getElementById('area-pagto').style.display='none';
+    document.getElementById('f-composicao').style.display='none';
+    document.getElementById('box-cancelada').style.display='block';
+    return;
+  }
+
+  if (f.status === 'atrasado') {
+    badge.className='badge b-late'; badge.textContent='Fatura vencida';
+    venc.className='venc atrasada';
+    venc.innerHTML = 'Venceu em: <b>' + fmt(f.vencimento) + '</b>';
+    document.getElementById('f-aviso').style.display='block';
+  } else {
+    badge.className='badge b-warn'; badge.textContent='Aguardando pagamento';
+    venc.innerHTML = 'Vencimento: <b>' + fmt(f.vencimento) + '</b>';
+  }
+
+  if (f.pix_copia_cola) {
+    document.getElementById('f-pix').textContent = f.pix_copia_cola;
+    new QRCode(document.getElementById('qrcode'), {
+      text: f.pix_copia_cola, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M,
+    });
+  } else {
+    document.getElementById('met-pix').style.display='none';
+    document.getElementById('met-boleto').setAttribute('open','');
+  }
+
+  if (f.linha_digitavel) {
+    document.getElementById('f-linha').textContent = f.linha_digitavel;
+    const pdf = document.getElementById('f-pdf');
+    const urlPdf = f.url_boleto || f.url_fatura;
+    if (urlPdf) pdf.href = urlPdf; else pdf.style.display='none';
+  } else {
+    document.getElementById('met-boleto').style.display='none';
+  }
+
+  if (f.permite_cartao && f.url_fatura) {
+    const btn = document.getElementById('f-cartao-btn');
+    btn.href = f.url_fatura;
+    btn.textContent = 'Pagar ' + brl(f.valor_total) + ' no cartão';
+    document.getElementById('met-cartao').style.display='block';
+  }
+}
+carregar();
+</script>
+</body>
+</html>
