@@ -17,6 +17,7 @@ function selecionarRelatorio(tipo, el) {
 function gerarRelatorioAtual() {
   if (relAtual === 'financeiro') gerarRelatorioFinanceiro();
   if (relAtual === 'repasses') gerarRelatorioRepasses();
+  if (relAtual === 'participacao') gerarRelatorioParticipacao();
 }
 
 function relPeriodoPadrao() {
@@ -193,6 +194,65 @@ async function gerarRelatorioRepasses() {
     </table>
 
     <div class="rel-nota">Devido = valor liberado sobre faturas já pagas dos alunos no período. Repasse ainda não pago fica como saldo.</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE PARTICIPAÇÃO DOS SÓCIOS ---------------- */
+async function gerarRelatorioParticipacao() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: fechamento }, { data: partLive, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('fechamentos').select('*').eq('periodo_ini', pIni).eq('periodo_fim', pFim).maybeSingle(),
+    db.rpc('fn_participacao', { p_academia_id: MEU_ACADEMIA_ID, p_ini: pIni, p_fim: pFim }),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  // Se o período já foi fechado oficialmente, usa o snapshot imutável.
+  // Senão, mostra o cálculo ao vivo (pode mudar até ser fechado).
+  const p = fechamento || (partLive && partLive[0]);
+  if (!p) { alvo.innerHTML = '<div class="vazio">Sem dados para este período.</div>'; return; }
+
+  const statusBadge = fechamento
+    ? `<span class="badge b-ok" style="margin-top:8px">🔒 Período fechado em ${fmt(String(fechamento.created_at).slice(0,10))}</span>`
+    : `<span class="badge b-warn" style="margin-top:8px">Período em aberto — valores ainda podem mudar</span>`;
+
+  const distribuicao = p.distribuicao || [];
+  const linhasSocios = distribuicao.map(d => `
+    <tr><td>${esc(d.socio)}</td><td>${Number(d.percentual)}%</td><td style="font-weight:700">${brl(d.valor)}</td></tr>
+  `).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Nenhum sócio cadastrado.</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Participação dos Sócios</h2>
+      <div class="periodo">Período: ${fmt(pIni)} a ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+      <div>${statusBadge}</div>
+    </div>
+
+    <div class="rel-section-title">Base de cálculo</div>
+    <table class="rel-table">
+      <tbody>
+        <tr><td>(+) Recebido dos alunos no período</td><td style="text-align:right">${brl(p.bruto_recebido)}</td></tr>
+        <tr><td>(−) Parte dos personais (repasse)</td><td style="text-align:right;color:var(--late)">− ${brl(p.total_personais)}</td></tr>
+        <tr class="rel-total-row"><td>Base para distribuição</td><td style="text-align:right">${brl(p.base_distribuicao)}</td></tr>
+      </tbody>
+    </table>
+    <div class="rel-nota" style="margin-top:8px">Despesas do período: ${brl(p.despesas_periodo)} — apenas informativo, não é descontado da base dos sócios.</div>
+
+    <div class="rel-section-title">Distribuição por sócio</div>
+    <table class="rel-table">
+      <thead><tr><th>Sócio</th><th>Percentual</th><th>Valor</th></tr></thead>
+      <tbody>${linhasSocios}</tbody>
+    </table>
+
+    <div class="rel-nota">${fechamento ? 'Valores extraídos do fechamento oficial deste período — não mudam mesmo que dados posteriores sejam alterados.' : 'Período ainda não fechado — feche em "Participação" para gravar um registro permanente.'}</div>
   `;
 }
 
