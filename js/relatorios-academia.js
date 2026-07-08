@@ -11,7 +11,13 @@ function selecionarRelatorio(tipo, el) {
   relAtual = tipo;
   document.querySelectorAll('#v-ac-relatorios .fchip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  gerarRelatorioAtual();
+
+  const ehExtrato = tipo === 'extrato';
+  document.getElementById('rel-filtros-periodo').style.display = ehExtrato ? 'none' : 'flex';
+  document.getElementById('rel-filtros-aluno').style.display = ehExtrato ? 'flex' : 'none';
+
+  if (ehExtrato) { popularSelectAlunos(); }
+  else { gerarRelatorioAtual(); }
 }
 
 function gerarRelatorioAtual() {
@@ -19,6 +25,7 @@ function gerarRelatorioAtual() {
   if (relAtual === 'repasses') gerarRelatorioRepasses();
   if (relAtual === 'participacao') gerarRelatorioParticipacao();
   if (relAtual === 'inadimplentes') gerarRelatorioInadimplentes();
+  if (relAtual === 'extrato') gerarRelatorioExtrato();
 }
 
 function relPeriodoPadrao() {
@@ -319,6 +326,82 @@ async function gerarRelatorioInadimplentes() {
   `;
 }
 
+/* ---------------- EXTRATO DE ALUNO ---------------- */
+async function popularSelectAlunos() {
+  const sel = document.getElementById('rel-aluno-sel');
+  sel.innerHTML = '<option>Carregando…</option>';
+  const { data: alunos } = await db.from('alunos').select('id, nome, ativo').order('nome');
+  if (!alunos || !alunos.length) {
+    sel.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
+    document.getElementById('rel-conteudo').innerHTML = '<div class="vazio">Nenhum aluno cadastrado ainda.</div>';
+    return;
+  }
+  sel.innerHTML = alunos.map(a => `<option value="${a.id}">${esc(a.nome)}${a.ativo === false ? ' (inativo)' : ''}</option>`).join('');
+  gerarRelatorioExtrato();
+}
+
+async function gerarRelatorioExtrato() {
+  const alunoId = Number(document.getElementById('rel-aluno-sel').value);
+  const alvo = document.getElementById('rel-conteudo');
+  if (!alunoId) { alvo.innerHTML = '<div class="vazio">Selecione um aluno.</div>'; return; }
+  alvo.innerHTML = '<div class="carregando">Gerando extrato…</div>';
+
+  const [{ data: nomeAcademia }, { data: aluno }, { data: mensalidades, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('vw_alunos_completo').select('*').eq('id', alunoId).single(),
+    db.from('mensalidades').select('*').eq('aluno_id', alunoId).order('vencimento', { ascending: false }),
+  ]);
+
+  if (error || !aluno) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error?.message || 'aluno não encontrado')}</div>`; return; }
+
+  const lista = mensalidades || [];
+  const totalPago = lista.filter(m => m.status === 'pago').reduce((s, m) => s + Number(m.valor_total), 0);
+  const totalPendente = lista.filter(m => m.status === 'pendente' || m.status === 'atrasado').reduce((s, m) => s + Number(m.valor_total), 0);
+
+  const linhas = lista.map(m => `
+    <tr>
+      <td>${String(m.competencia).slice(0,7).split('-').reverse().join('/')}</td>
+      <td>${fmt(m.vencimento)}</td>
+      <td>${brl(m.valor_total)}</td>
+      <td style="text-transform:capitalize">${esc(m.status)}</td>
+      <td>${m.pago_em ? fmt(String(m.pago_em).slice(0,10)) : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhuma fatura registrada.</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Extrato do Aluno</h2>
+      <div class="periodo">${esc(aluno.nome)}${aluno.ativo === false ? ' (inativo)' : ''}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+    </div>
+
+    <div class="rel-section-title">Dados do aluno</div>
+    <table class="rel-table">
+      <tbody>
+        <tr><td>CPF</td><td style="text-align:right">${esc(aluno.cpf || '—')}</td></tr>
+        <tr><td>WhatsApp</td><td style="text-align:right">${esc(aluno.whatsapp || '—')}</td></tr>
+        <tr><td>Plano</td><td style="text-align:right">${esc(aluno.plano)} (${brl(aluno.valor_plano)})</td></tr>
+        ${aluno.personal ? `<tr><td>Personal</td><td style="text-align:right">${esc(aluno.personal)} (${brl(aluno.valor_personal)})</td></tr>` : ''}
+        <tr><td>Cadastrado em</td><td style="text-align:right">${fmt(String(aluno.created_at).slice(0,10))}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="rel-kpis" style="grid-template-columns:repeat(3,1fr);margin-top:20px">
+      <div class="rel-kpi"><div class="l">Total pago (histórico)</div><div class="v" style="color:var(--ok)">${brl(totalPago)}</div></div>
+      <div class="rel-kpi"><div class="l">Pendente/atrasado</div><div class="v" style="color:var(--warn)">${brl(totalPendente)}</div></div>
+      <div class="rel-kpi"><div class="l">Total de faturas</div><div class="v">${lista.length}</div></div>
+    </div>
+
+    <div class="rel-section-title">Histórico de mensalidades</div>
+    <table class="rel-table">
+      <thead><tr><th>Competência</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Pago em</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+
+    <div class="rel-nota">Extrato completo desde o cadastro do aluno na academia.</div>
+  `;
+}
+
 /* ---------------- IMPRIMIR / PDF ---------------- */
 function imprimirRelatorio() {
   const conteudo = document.getElementById('rel-conteudo').innerHTML;
@@ -328,7 +411,13 @@ function imprimirRelatorio() {
 
 function baixarRelatorioPdf() {
   const el = document.getElementById('rel-conteudo');
-  const nomeArquivo = `relatorio-${relAtual}-${document.getElementById('rel-ini').value}-a-${document.getElementById('rel-fim').value}.pdf`;
+  let nomeArquivo;
+  if (relAtual === 'extrato') {
+    const nomeAluno = document.getElementById('rel-aluno-sel').selectedOptions[0]?.textContent.trim().replace(/\s+/g, '-') || 'aluno';
+    nomeArquivo = `extrato-${nomeAluno}.pdf`;
+  } else {
+    nomeArquivo = `relatorio-${relAtual}-${document.getElementById('rel-ini').value}-a-${document.getElementById('rel-fim').value}.pdf`;
+  }
   toast('Gerando PDF…');
   html2pdf().set({
     margin: 12,
