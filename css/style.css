@@ -208,13 +208,6 @@ tbody tr:hover{background:#fafafb}
 
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-  .rel-header{margin-bottom:12px !important;padding-bottom:10px !important}
-  .rel-kpis{margin-bottom:12px !important;gap:8px !important}
-  .rel-kpi{padding:8px !important}
-  .rel-section-title{margin:12px 0 6px !important}
-  .rel-table td, .rel-table th{padding:5px 6px !important}
-  .rel-resultado{margin-top:10px !important;padding:10px 12px !important}
-  .rel-nota{margin-top:8px !important}
   body * { visibility: hidden !important; }
   #print-area { display: block !important; visibility: visible !important; position: absolute; top: 0; left: 0; width: 100%; padding: 0; }
   #print-area * { visibility: visible !important; }
