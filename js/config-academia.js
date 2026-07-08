@@ -223,7 +223,7 @@ function gerarTokenAc() {
 async function salvarChaveAsaasAc() {
   const chave = document.getElementById('ac-nova-api-key').value.trim();
   if (!chave) { toast('Cole a chave antes de salvar.'); return; }
-  const { error } = await db.from('academias').update({ asaas_api_key: chave }).eq('id', MEU_ACADEMIA_ID);
+  const { error } = await db.rpc('fn_academia_atualizar_asaas', { p_api_key: chave });
   toast(error ? 'Erro: ' + error.message : 'Chave Asaas salva ✓');
   carregarConfigAc();
 }
@@ -238,7 +238,7 @@ async function salvarTokenWebhookAc() {
   const token = document.getElementById('ac-novo-token').value.trim();
   if (!token) { toast('Cole ou gere o token antes de salvar.'); return; }
   if (token.length < 32) { toast('O token precisa ter no mínimo 32 caracteres (exigência do Asaas).'); return; }
-  const { error } = await db.from('academias').update({ asaas_webhook_token: token }).eq('id', MEU_ACADEMIA_ID);
+  const { error } = await db.rpc('fn_academia_atualizar_asaas', { p_webhook_token: token });
   toast(error ? 'Erro: ' + error.message : 'Token do webhook salvo ✓');
   carregarConfigAc();
 }
