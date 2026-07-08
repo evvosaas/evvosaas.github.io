@@ -51,7 +51,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.2<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -238,7 +238,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.2<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -496,8 +496,16 @@
         <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
       </div>
-      <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);justify-content:flex-end" id="rel-filtros-nenhum">
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
+      <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-nenhum">
+        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
+          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Mostrar</span>
+          <select id="rel-alunos-situacao" onchange="gerarRelatorioAlunos()" style="border:none;background:transparent;font-size:13px;font-weight:600">
+            <option value="ambos">Ativos e inativos</option>
+            <option value="ativos">Somente ativos</option>
+            <option value="inativos">Somente inativos</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()" style="margin-left:auto">🖨 Imprimir</button>
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
       </div>
       <div style="padding:26px 30px;overflow-x:auto">
@@ -758,6 +766,6 @@
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
 <script src="js/config-academia.js?v=3"></script>
-<script src="js/relatorios-academia.js?v=6"></script>
+<script src="js/relatorios-academia.js?v=7"></script>
 </body>
 </html>
