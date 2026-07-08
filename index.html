@@ -6,8 +6,9 @@
 <title>Evvo Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20">
+<link rel="stylesheet" href="css/style.css?v=21">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -50,7 +51,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v3.5<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v3.6<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -231,9 +232,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.5-2-3.5-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3H9l-.3 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7.5 7.5 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7.5 7.5 0 0 0 1.7 1L9 21h6l.3-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.5Z"/></svg>
       <span>Configurações</span>
     </div>
+    <div class="nav-item" onclick="goAc('ac-relatorios',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2.5h9l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14.5 2.5V7h4.5"/><path d="M8 12h8M8 15.5h8M8 18.5h5"/></svg>
+      <span>Relatórios</span>
+    </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v3.5<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v3.6<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -457,8 +462,41 @@
       <div id="ac-integracao-box"></div>
     </div>
   </section>
+
+  <!-- ============ RELATÓRIOS ============ -->
+  <section class="view" id="v-ac-relatorios">
+    <div class="topbar">
+      <div><h1>Relatórios</h1><div class="sub">Visualize na tela, imprima ou baixe em PDF</div></div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <div class="fchip active" onclick="selecionarRelatorio('financeiro',this)">📊 Financeiro</div>
+        <div class="fchip" onclick="toast('Em construção — próxima entrega')">💸 Repasses</div>
+        <div class="fchip" onclick="toast('Em construção — próxima entrega')">🤝 Participação</div>
+        <div class="fchip" onclick="toast('Em construção — próxima entrega')">⚠ Inadimplentes</div>
+        <div class="fchip" onclick="toast('Em construção — próxima entrega')">👤 Extrato de aluno</div>
+      </div>
+      <div style="padding:16px 20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)">
+        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
+          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
+          <input type="date" id="rel-ini" onchange="gerarRelatorioFinanceiro()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+          <span>—</span>
+          <input type="date" id="rel-fim" onchange="gerarRelatorioFinanceiro()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
+        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
+      </div>
+      <div style="padding:26px 30px;overflow-x:auto">
+        <div id="rel-conteudo" style="max-width:720px;margin:0 auto"></div>
+      </div>
+    </div>
+  </section>
 </main>
 </div>
+
+<!-- área invisível usada só na hora de imprimir (@media print) -->
+<div id="print-area"></div>
 
 <!-- ================= MODAL PLANO (academia) ================= -->
 <div class="overlay" id="m-plano-ac">
@@ -697,7 +735,7 @@
 <div class="toast" id="toast"><div class="dot"></div><span id="toast-msg">ok</span></div>
 
 <script src="js/config.js?v=21"></script>
-<script src="js/app.js?v=20"></script>
+<script src="js/app.js?v=21"></script>
 <script src="js/academias.js?v=22"></script>
 <script src="js/receitas.js?v=1"></script>
 <script src="js/dashboard-academia.js?v=1"></script>
@@ -707,5 +745,6 @@
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
 <script src="js/config-academia.js?v=3"></script>
+<script src="js/relatorios-academia.js?v=1"></script>
 </body>
 </html>
