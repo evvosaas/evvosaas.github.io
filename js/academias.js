@@ -88,6 +88,7 @@ function abrirAcademia(id) {
   document.getElementById('ma-title').textContent = a ? 'Editar academia' : 'Nova academia';
   document.getElementById('ma-nome').value = a?.nome || '';
   document.getElementById('ma-cidade').value = a?.cidade_uf || '';
+  document.getElementById('ma-cpfcnpj').value = a?.cpf_cnpj || '';
   document.getElementById('ma-resp').value = a?.responsavel || '';
   document.getElementById('ma-zap').value = a?.whatsapp || '';
   document.getElementById('ma-plano').value = a?.plano_evvo || 'Básico';
@@ -113,6 +114,7 @@ async function salvarAcademia() {
   const registro = {
     nome,
     cidade_uf: document.getElementById('ma-cidade').value.trim() || null,
+    cpf_cnpj: document.getElementById('ma-cpfcnpj').value.trim() || null,
     responsavel: document.getElementById('ma-resp').value.trim() || null,
     whatsapp: document.getElementById('ma-zap').value.trim() || null,
     plano_evvo: document.getElementById('ma-plano').value,
@@ -177,6 +179,7 @@ async function abrirDetalhe(id) {
 
   document.getElementById('det-nome').textContent = a.nome;
   document.getElementById('det-loc').textContent = `${a.cidade_uf || '—'} · responsável: ${a.responsavel || '—'}`;
+  document.getElementById('det-cpfcnpj').textContent = a.cpf_cnpj || '—';
   document.getElementById('det-avatar').textContent = ini(a.nome);
   document.getElementById('det-status').innerHTML = statusBadge(a.status);
 
@@ -287,6 +290,8 @@ async function toggleStatusAcademia() {
 async function resetarSenhaAcademia() {
   const email = prompt('Confirme o e-mail de login desta academia para enviar a redefinição de senha:');
   if (!email) return;
-  const { error } = await db.auth.resetPasswordForEmail(email);
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://evvosaas.github.io/',
+  });
   toast(error ? 'Erro: ' + error.message : 'E-mail de redefinição enviado ✓');
 }
