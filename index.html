@@ -51,7 +51,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -238,7 +238,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v4.0<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v4.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -475,14 +475,22 @@
         <div class="fchip" onclick="selecionarRelatorio('repasses',this)">💸 Repasses</div>
         <div class="fchip" onclick="selecionarRelatorio('participacao',this)">🤝 Participação</div>
         <div class="fchip" onclick="selecionarRelatorio('inadimplentes',this)">⚠ Inadimplentes</div>
-        <div class="fchip" onclick="toast('Em construção — próxima entrega')">👤 Extrato de aluno</div>
+        <div class="fchip" onclick="selecionarRelatorio('extrato',this)">👤 Extrato de aluno</div>
       </div>
-      <div style="padding:16px 20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)">
+      <div style="padding:16px 20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-periodo">
         <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
           <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px">Período</span>
           <input type="date" id="rel-ini" onchange="gerarRelatorioAtual()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
           <span>—</span>
           <input type="date" id="rel-fim" onchange="gerarRelatorioAtual()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
+        <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
+      </div>
+      <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-aluno">
+        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600;flex:1;min-width:220px;max-width:340px">
+          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;flex:none">Aluno</span>
+          <select id="rel-aluno-sel" onchange="gerarRelatorioExtrato()" style="border:none;background:transparent;font-size:13px;font-weight:600;flex:1;width:100%"></select>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir</button>
         <button class="btn btn-primary btn-sm" onclick="baixarRelatorioPdf()">📄 Baixar PDF</button>
@@ -745,6 +753,6 @@
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
 <script src="js/config-academia.js?v=3"></script>
-<script src="js/relatorios-academia.js?v=4"></script>
+<script src="js/relatorios-academia.js?v=5"></script>
 </body>
 </html>
