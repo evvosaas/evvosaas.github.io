@@ -30,14 +30,13 @@ async function carregarConfigAc() {
   tb.innerHTML = AC_PLANOS_CFG.length ? AC_PLANOS_CFG.map(p => `
     <tr>
       <td><b>${esc(p.nome)}</b>${p.ativo === false ? ' <span class="badge b-off">Inativo</span>' : ''}</td>
-      <td><b>${brl(p.valor)}</b></td>
-      <td>${p.periodicidade_meses === 1 ? 'Mensal' : 'A cada ' + p.periodicidade_meses + ' meses'}</td>
+      <td><b>${brl(p.valor)}</b>/mês</td>
       <td>${qtdPor[p.id] || 0} aluno(s)</td>
       <td><div class="acts">
         <button class="icon-btn" title="Editar" onclick="abrirPlanoAc(${p.id})">✎</button>
         <button class="icon-btn del" title="Excluir" onclick="excluirPlanoAc(${p.id})">🗑</button>
       </div></td>
-    </tr>`).join('') : '<tr><td colspan="5" class="vazio">Nenhum plano cadastrado.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="4" class="vazio">Nenhum plano cadastrado.</td></tr>';
 
   /* ---------- Controles da geração ---------- */
   const mapa = {};
@@ -87,7 +86,6 @@ function abrirPlanoAc(id) {
   document.getElementById('ac-mpl-title').textContent = p ? 'Editar plano' : 'Novo plano';
   document.getElementById('ac-mpl-nome').value = p?.nome || '';
   document.getElementById('ac-mpl-valor').value = p ? Number(p.valor).toFixed(2) : '';
-  document.getElementById('ac-mpl-per').value = p?.periodicidade_meses || 1;
   document.getElementById('ac-mpl-ativo').checked = p ? p.ativo !== false : true;
   openModal('m-plano-ac');
 }
@@ -100,7 +98,7 @@ async function salvarPlanoAc() {
 
   const registro = {
     nome, valor,
-    periodicidade_meses: parseInt(document.getElementById('ac-mpl-per').value) || 1,
+    periodicidade_meses: 1, // cobrança sempre mensal; o nome do plano indica só o compromisso
     ativo: document.getElementById('ac-mpl-ativo').checked,
   };
 
