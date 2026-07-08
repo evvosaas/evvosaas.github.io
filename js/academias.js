@@ -306,6 +306,37 @@ async function resetarSenhaAcademia() {
   toast(error ? 'Erro: ' + error.message : 'E-mail de redefinição enviado ✓');
 }
 
+/* ---------------- DEFINIR SENHA MANUALMENTE (sem e-mail) ---------------- */
+function abrirDefinirSenhaAc() {
+  document.getElementById('ds-nova-senha').value = '';
+  openModal('m-definir-senha');
+}
+
+function gerarSenhaTemporariaAc() {
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  const senha = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 10);
+  document.getElementById('ds-nova-senha').value = senha;
+  navigator.clipboard.writeText(senha).then(() => toast('Senha gerada e copiada ✓'));
+}
+
+async function salvarSenhaManualAc() {
+  const nova = document.getElementById('ds-nova-senha').value.trim();
+  if (!nova || nova.length < 6) { toast('A senha precisa ter pelo menos 6 caracteres.'); return; }
+
+  const { data, error } = await db.functions.invoke('admin-definir-senha', {
+    body: { academia_id: acadDetalheId, nova_senha: nova },
+  });
+  if (error || data?.erro) {
+    let msg = data?.erro || error.message;
+    try { const b = await error?.context?.json?.(); if (b?.erro) msg = b.erro; } catch (_) {}
+    toast('Erro: ' + msg);
+    return;
+  }
+  closeModal('m-definir-senha');
+  toast('Senha definida ✓ — a academia vai precisar trocá-la no próximo login.');
+}
+
 /* ---------------- EXCLUIR ACADEMIA (definitivo) ---------------- */
 async function excluirAcademiaCompleta() {
   const a = ACADEMIAS.find(x => x.id === acadDetalheId);
