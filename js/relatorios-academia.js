@@ -408,6 +408,8 @@ async function gerarRelatorioAlunos() {
   const alvo = document.getElementById('rel-conteudo');
   alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
 
+  const situacao = document.getElementById('rel-alunos-situacao')?.value || 'ambos';
+
   const [{ data: nomeAcademia }, { data: alunos, error }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('vw_alunos_completo').select('*').order('nome'),
@@ -432,10 +434,26 @@ async function gerarRelatorioAlunos() {
   const linhasAtivos = ativos.map(linhaAluno).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno ativo.</td></tr>';
   const linhasInativos = inativos.map(linhaAluno).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno inativo.</td></tr>';
 
+  const secaoAtivos = `
+    <div class="rel-section-title">Alunos ativos (${ativos.length})</div>
+    <table class="rel-table">
+      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
+      <tbody>${linhasAtivos}</tbody>
+    </table>`;
+
+  const secaoInativos = `
+    <div class="rel-section-title">Alunos inativos (${inativos.length})</div>
+    <table class="rel-table">
+      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
+      <tbody>${linhasInativos}</tbody>
+    </table>`;
+
+  const tituloSituacao = situacao === 'ativos' ? 'Alunos Ativos' : situacao === 'inativos' ? 'Alunos Inativos' : 'Alunos Ativos/Inativos';
+
   alvo.innerHTML = `
     <div class="rel-header">
       <div class="marca"><div class="m">V</div><b>EVVO</b></div>
-      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Alunos Ativos/Inativos</h2>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — ${tituloSituacao}</h2>
       <div class="periodo">Situação atual da base de alunos</div>
       <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
     </div>
@@ -447,17 +465,8 @@ async function gerarRelatorioAlunos() {
       <div class="rel-kpi"><div class="l">Total já cadastrado</div><div class="v">${lista.length}</div></div>
     </div>
 
-    <div class="rel-section-title">Alunos ativos (${ativos.length})</div>
-    <table class="rel-table">
-      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
-      <tbody>${linhasAtivos}</tbody>
-    </table>
-
-    <div class="rel-section-title">Alunos inativos (${inativos.length})</div>
-    <table class="rel-table">
-      <thead><tr><th>Nome</th><th>Plano</th><th>Personal</th><th>Mensalidade</th><th>Cadastrado em</th></tr></thead>
-      <tbody>${linhasInativos}</tbody>
-    </table>
+    ${situacao !== 'inativos' ? secaoAtivos : ''}
+    ${situacao !== 'ativos' ? secaoInativos : ''}
 
     <div class="rel-nota">Inclui todos os alunos já cadastrados na academia, independentemente de período.</div>
   `;
