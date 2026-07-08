@@ -3,6 +3,30 @@
    ============================================================ */
 const db = supabase.createClient(EVVO_CONFIG.SUPABASE_URL, EVVO_CONFIG.SUPABASE_ANON);
 
+// Detecta quando alguém chega pelo link de "redefinir senha" (e-mail do
+// Supabase). Precisa ser registrado cedo, pois o evento pode disparar
+// assim que a página carrega, antes do boot() rodar.
+db.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    document.getElementById('tela-login').style.display = 'none';
+    document.getElementById('app-master').style.display = 'none';
+    document.getElementById('app-academia').style.display = 'none';
+    openModal('m-redefinir-senha');
+  }
+});
+
+async function salvarNovaSenhaRecuperacao() {
+  const nova = document.getElementById('rs-nova-senha').value;
+  if (!nova || nova.length < 6) { toast('A senha precisa ter pelo menos 6 caracteres.'); return; }
+  const { error } = await db.auth.updateUser({ password: nova });
+  if (error) { toast('Erro: ' + error.message); return; }
+  toast('Senha atualizada ✓ Faça login com a nova senha.');
+  closeModal('m-redefinir-senha');
+  await db.auth.signOut();
+  history.replaceState(null, '', window.location.pathname);
+  document.getElementById('tela-login').style.display = 'flex';
+}
+
 /* ---------------- HELPERS GLOBAIS ---------------- */
 const brl = v => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 const fmt = d => { if (!d) return '—'; const [a, m, dd] = String(d).slice(0, 10).split('-'); return `${dd}/${m}/${a}`; };
