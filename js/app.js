@@ -182,6 +182,7 @@ function go(v, el) {
 
   if (v === 'home')       carregarVisaoGeral();
   if (v === 'academias')  carregarAcademias();
+  if (v === 'receitas')   carregarReceitas();
   window.scrollTo(0, 0);
 }
 
