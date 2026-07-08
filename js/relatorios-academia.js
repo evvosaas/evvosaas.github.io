@@ -11,7 +11,12 @@ function selecionarRelatorio(tipo, el) {
   relAtual = tipo;
   document.querySelectorAll('#v-ac-relatorios .fchip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  if (tipo === 'financeiro') gerarRelatorioFinanceiro();
+  gerarRelatorioAtual();
+}
+
+function gerarRelatorioAtual() {
+  if (relAtual === 'financeiro') gerarRelatorioFinanceiro();
+  if (relAtual === 'repasses') gerarRelatorioRepasses();
 }
 
 function relPeriodoPadrao() {
@@ -26,7 +31,7 @@ function relPeriodoPadrao() {
 
 async function carregarRelatoriosAc() {
   relPeriodoPadrao();
-  await gerarRelatorioFinanceiro();
+  await gerarRelatorioAtual();
 }
 
 /* ---------------- RELATÓRIO FINANCEIRO ---------------- */
@@ -114,6 +119,80 @@ async function gerarRelatorioFinanceiro() {
       <span class="num" style="color:${resultado >= 0 ? 'var(--ok)' : 'var(--late)'}">${brl(resultado)}</span>
     </div>
     <div class="rel-nota">Relatório informativo. "Recebido" reflete o valor efetivamente pago, não o valor de face das faturas.</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE REPASSES AOS PERSONAIS ---------------- */
+async function gerarRelatorioRepasses() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: devidos, error }, { data: repassesPagos }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.rpc('fn_repasses_devidos', { p_academia_id: MEU_ACADEMIA_ID, p_ini: pIni, p_fim: pFim }),
+    db.from('repasses').select('*, personais(nome)').eq('status', 'pago')
+      .gte('periodo_ini', pIni).lte('periodo_fim', pFim).order('pago_em'),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const listaDevidos = devidos || [];
+  const jaPagoPorPersonal = {};
+  (repassesPagos || []).forEach(r => {
+    jaPagoPorPersonal[r.personal_id] = (jaPagoPorPersonal[r.personal_id] || 0) + Number(r.valor);
+  });
+
+  let totalDevido = 0, totalPago = 0;
+  const linhasPersonais = listaDevidos.map(p => {
+    const pago = jaPagoPorPersonal[p.personal_id] || 0;
+    const saldo = Math.max(Number(p.valor_total) - pago, 0);
+    totalDevido += Number(p.valor_total);
+    totalPago += pago;
+    return `<tr>
+      <td>${esc(p.personal)}</td>
+      <td>${p.qtd_alunos}</td>
+      <td>${brl(p.valor_total)}</td>
+      <td>${brl(pago)}</td>
+      <td style="font-weight:700;color:${saldo > 0 ? 'var(--warn)' : 'var(--ok)'}">${brl(saldo)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum repasse devido no período.</td></tr>';
+
+  const linhasHistorico = (repassesPagos || []).map(r => `
+    <tr><td>${esc(r.personais?.nome || '—')}</td><td>${brl(r.valor)}</td><td>${fmt(String(r.pago_em).slice(0,10))}</td><td>${esc(r.observacao || '—')}</td></tr>
+  `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhum repasse registrado como pago no período.</td></tr>';
+
+  const saldoTotal = Math.max(totalDevido - totalPago, 0);
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Relatório de Repasses</h2>
+      <div class="periodo">Período: ${fmt(pIni)} a ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+    </div>
+
+    <div class="rel-kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="rel-kpi"><div class="l">Devido no período</div><div class="v">${brl(totalDevido)}</div></div>
+      <div class="rel-kpi"><div class="l">Já repassado</div><div class="v" style="color:var(--ok)">${brl(totalPago)}</div></div>
+      <div class="rel-kpi"><div class="l">Saldo pendente</div><div class="v" style="color:var(--warn)">${brl(saldoTotal)}</div></div>
+    </div>
+
+    <div class="rel-section-title">Repasses por personal</div>
+    <table class="rel-table">
+      <thead><tr><th>Personal</th><th>Alunos</th><th>Devido</th><th>Repassado</th><th>Saldo</th></tr></thead>
+      <tbody>${linhasPersonais}</tbody>
+    </table>
+
+    <div class="rel-section-title">Histórico de repasses pagos no período</div>
+    <table class="rel-table">
+      <thead><tr><th>Personal</th><th>Valor</th><th>Pago em</th><th>Observação</th></tr></thead>
+      <tbody>${linhasHistorico}</tbody>
+    </table>
+
+    <div class="rel-nota">Devido = valor liberado sobre faturas já pagas dos alunos no período. Repasse ainda não pago fica como saldo.</div>
   `;
 }
 
