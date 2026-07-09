@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -215,6 +215,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
       <span>Personais</span>
     </div>
+    <div class="nav-item" onclick="goAc('ac-parceiros',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="3.2"/><path d="M2.5 20c.7-3.2 3.1-4.7 5.5-4.7s4.8 1.5 5.5 4.7"/><path d="M15 4.5a3.2 3.2 0 0 1 0 6.3"/><path d="M14.5 15.4c2.4.3 4.2 1.8 4.8 4.6"/></svg>
+      <span>Parceiros Externos</span>
+    </div>
     <div class="nav-item" onclick="goAc('ac-financeiro',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>
       <span>Financeiro</span>
@@ -237,7 +241,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.1<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -312,6 +316,15 @@
         <tbody id="ac-pers-hist-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
       </table>
     </div>
+  </section>
+
+  <!-- ============ PARCEIROS EXTERNOS ============ -->
+  <section class="view" id="v-ac-parceiros">
+    <div class="topbar">
+      <div><h1>Parceiros Externos</h1><div class="sub">Avaliadores e outros profissionais parceiros · cobranças avulsas (não recorrentes)</div></div>
+      <button class="btn btn-primary" onclick="abrirParceiroAc(null)">+ Novo parceiro externo</button>
+    </div>
+    <div class="pers-grid" id="ac-parc-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px"></div>
   </section>
 
   <!-- ============ FINANCEIRO ============ -->
@@ -603,6 +616,24 @@
   </div>
 </div>
 
+<!-- ================= MODAL PARCEIRO EXTERNO (academia) ================= -->
+<div class="overlay" id="m-parceiro-ac">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo" id="ac-mpe-title">Novo parceiro externo</div><button class="close" onclick="closeModal('m-parceiro-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Nome completo *</label><input id="ac-mpe-nome" placeholder="Ex.: Rafael Novais"></div>
+      <div class="full"><label>Tipo / especialidade</label><input id="ac-mpe-tipo" placeholder="Ex.: Avaliação física" list="ac-mpe-tipo-sugestoes"><datalist id="ac-mpe-tipo-sugestoes"></datalist></div>
+      <div><label>WhatsApp (com DDD)</label><input id="ac-mpe-zap" placeholder="44999990000"></div>
+      <div><label>Chave PIX para repasse</label><input id="ac-mpe-pix" placeholder="CPF, celular, e-mail ou aleatória"></div>
+      <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-mpe-ativo" checked style="width:17px;height:17px;flex:none">Parceiro ativo</label></div>
+    </div>
+    <div class="modal-foot">
+      <div class="hint">O valor de cada cobrança e o repasse são definidos avulsamente, na hora de cada lançamento.</div>
+      <button class="btn btn-primary" onclick="salvarParceiroAc()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL REDEFINIR SENHA (link de recuperação) ================= -->
 <div class="overlay" id="m-redefinir-senha">
   <div class="modal">
@@ -773,6 +804,7 @@
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=4"></script>
 <script src="js/personais-academia.js?v=1"></script>
+<script src="js/parceiros-externos-academia.js?v=1"></script>
 <script src="js/financeiro-academia.js?v=4"></script>
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
