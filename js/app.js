@@ -181,6 +181,7 @@ function goAc(v, el) {
   if (v === 'ac-dashboard') carregarDashboardAc();
   if (v === 'ac-alunos')    carregarAlunosAc();
   if (v === 'ac-personais') carregarPersonaisAc();
+  if (v === 'ac-parceiros') carregarParceirosAc();
   if (v === 'ac-financeiro') carregarFinanceiroAc();
   if (v === 'ac-despesas')   carregarDespesasAc();
   if (v === 'ac-socios')     carregarSociosAc();
