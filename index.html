@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.4<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -241,7 +241,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.3<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.4<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -322,9 +322,19 @@
   <section class="view" id="v-ac-parceiros">
     <div class="topbar">
       <div><h1>Parceiros Externos</h1><div class="sub">Avaliadores e outros profissionais parceiros · cobranças avulsas (não recorrentes)</div></div>
-      <button class="btn btn-primary" onclick="abrirParceiroAc(null)">+ Novo parceiro externo</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="abrirCobrancaAvulsaAc()">+ Nova cobrança avulsa</button>
+        <button class="btn btn-primary" onclick="abrirParceiroAc(null)">+ Novo parceiro externo</button>
+      </div>
     </div>
-    <div class="pers-grid" id="ac-parc-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px"></div>
+    <div class="pers-grid" id="ac-parc-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px"></div>
+    <div class="card">
+      <div class="card-head"><h2>Cobranças avulsas lançadas</h2></div>
+      <table>
+        <thead><tr><th>Data</th><th>Aluno</th><th>Parceiro</th><th>Descrição</th><th>Total</th><th>Parceiro</th><th>Líquido academia</th><th>Repasse</th></tr></thead>
+        <tbody id="ac-cobav-rows"><tr><td colspan="8" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
   </section>
 
   <!-- ============ FINANCEIRO ============ -->
@@ -634,6 +644,26 @@
   </div>
 </div>
 
+<!-- ================= MODAL NOVA COBRANÇA AVULSA (academia) ================= -->
+<div class="overlay" id="m-cobranca-avulsa">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Nova cobrança avulsa</div><button class="close" onclick="closeModal('m-cobranca-avulsa')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Aluno *</label><select id="ac-ca-aluno"></select></div>
+      <div class="full"><label>Parceiro externo *</label><select id="ac-ca-parceiro"></select></div>
+      <div class="full"><label>Descrição *</label><input id="ac-ca-desc" placeholder="Ex.: Avaliação física"></div>
+      <div><label>Data</label><input type="date" id="ac-ca-data"></div>
+      <div><label>Valor total (R$) *</label><input type="number" id="ac-ca-total" min="0" step="0.01" oninput="acCaCalc()"></div>
+      <div><label>Valor do parceiro (R$)</label><input type="number" id="ac-ca-parcval" min="0" step="0.01" value="0" oninput="acCaCalc()"></div>
+      <div><label>Valor líquido da academia</label><input id="ac-ca-liquido" disabled></div>
+    </div>
+    <div class="form-note">Lançamento registrado como já recebido (dinheiro, PIX direto ou cartão na hora). O repasse ao parceiro fica marcado como pendente até você confirmar o pagamento a ele.</div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="salvarCobrancaAvulsaAc()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL REDEFINIR SENHA (link de recuperação) ================= -->
 <div class="overlay" id="m-redefinir-senha">
   <div class="modal">
@@ -804,7 +834,7 @@
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=4"></script>
 <script src="js/personais-academia.js?v=1"></script>
-<script src="js/parceiros-externos-academia.js?v=1"></script>
+<script src="js/parceiros-externos-academia.js?v=2"></script>
 <script src="js/financeiro-academia.js?v=4"></script>
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
