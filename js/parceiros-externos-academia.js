@@ -56,8 +56,9 @@ async function carregarParceirosAc() {
         : c.status === 'atrasado' ? '<span class="badge b-late">Atrasado</span>'
         : c.status === 'cancelado' ? '<span class="badge b-off">Cancelado</span>'
         : '<span class="badge b-warn">Pendente</span>';
-      const repasseBadge = c.status_repasse === 'pago'
-        ? '<span class="badge b-ok">Repassado</span>' : '<span class="badge b-off">Repasse pendente</span>';
+      const repasseBadge = c.status !== 'pago' ? '<span class="badge b-off">—</span>'
+        : c.status_repasse === 'pago'
+          ? '<span class="badge b-ok">Repassado</span>' : '<span class="badge b-off">Repasse pendente</span>';
       const link = c.origem === 'asaas' && (c.url_fatura || c.url_boleto)
         ? ` <a href="${c.url_fatura || c.url_boleto}" target="_blank" title="Abrir fatura no Asaas">🔗</a>` : '';
       const acoes = (c.status === 'pendente' || c.status === 'atrasado')
