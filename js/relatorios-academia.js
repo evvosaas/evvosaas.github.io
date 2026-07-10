@@ -54,10 +54,12 @@ async function gerarRelatorioFinanceiro() {
   const alvo = document.getElementById('rel-conteudo');
   alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
 
-  const [{ data: nomeAcademia }, { data: faturas, error }, { data: despesas }] = await Promise.all([
+  const [{ data: nomeAcademia }, { data: faturas, error }, { data: despesas }, { data: avulsas }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('vw_financeiro').select('*').gte('vencimento', pIni).lte('vencimento', pFim).order('vencimento'),
     db.from('despesas').select('*').gte('vencimento', pIni).lte('vencimento', pFim),
+    db.from('cobrancas_avulsas').select('valor_total, valor_parceiro').eq('status', 'pago')
+      .gte('data_cobranca', pIni).lte('data_cobranca', pFim),
   ]);
 
   if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
@@ -77,12 +79,19 @@ async function gerarRelatorioFinanceiro() {
     return s + Number(m.valor_total);
   }, 0);
 
-  const recebido = somaReal('pago');
+  const recebidoMensalidade = somaReal('pago');
+  const repasseMensalidade = lista.filter(m => m.status === 'pago').reduce((s, m) => s + Number(m.valor_personal || 0), 0);
   const aReceber = somaReal('pendente');
   const emAtraso = somaReal('atrasado');
   const cancelado = somaReal('cancelado');
+
+  const avulsoBruto = (avulsas || []).reduce((s, a) => s + Number(a.valor_total), 0);
+  const avulsoRepasse = (avulsas || []).reduce((s, a) => s + Number(a.valor_parceiro), 0);
+
+  const recebido = recebidoMensalidade + avulsoBruto;
+  const repasse = repasseMensalidade + avulsoRepasse;
   const totalDespesas = (despesas || []).reduce((s, d) => s + Number(d.valor), 0);
-  const resultado = recebido - totalDespesas;
+  const resultado = recebido - repasse - totalDespesas;
 
   const linhasFaturas = lista.filter(m => m.status !== 'cancelado').map(m => {
     const valorMostrar = m.status === 'pago' ? (recebidoPorId[m.id] ?? m.valor_total) : m.valor_total;
@@ -106,8 +115,9 @@ async function gerarRelatorioFinanceiro() {
       <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
     </div>
 
-    <div class="rel-kpis">
+    <div class="rel-kpis" style="grid-template-columns:repeat(5,1fr)">
       <div class="rel-kpi"><div class="l">Recebido</div><div class="v" style="color:var(--ok)">${brl(recebido)}</div></div>
+      <div class="rel-kpi"><div class="l">Repasse a terceiros</div><div class="v" style="color:var(--late)">− ${brl(repasse)}</div></div>
       <div class="rel-kpi"><div class="l">A receber</div><div class="v" style="color:var(--warn)">${brl(aReceber)}</div></div>
       <div class="rel-kpi"><div class="l">Em atraso</div><div class="v" style="color:var(--late)">${brl(emAtraso)}</div></div>
       <div class="rel-kpi"><div class="l">Cancelado</div><div class="v">${brl(cancelado)}</div></div>
@@ -127,10 +137,10 @@ async function gerarRelatorioFinanceiro() {
     </table>
 
     <div class="rel-resultado">
-      <span>Resultado do período (recebido − despesas)</span>
+      <span>Resultado do período (recebido − repasse a terceiros − despesas)</span>
       <span class="num" style="color:${resultado >= 0 ? 'var(--ok)' : 'var(--late)'}">${brl(resultado)}</span>
     </div>
-    <div class="rel-nota">Relatório informativo. "Recebido" reflete o valor efetivamente pago, não o valor de face das faturas.</div>
+    <div class="rel-nota">Relatório informativo. "Recebido" inclui mensalidades + cobranças avulsas de Parceiros Externos, pelo valor efetivamente pago. "A receber", "Em atraso" e "Cancelado" referem-se apenas às mensalidades — veja o relatório de Parceiros Externos para o detalhamento de avulsos pendentes.</div>
   `;
 }
 
