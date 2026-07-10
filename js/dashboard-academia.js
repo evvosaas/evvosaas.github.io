@@ -8,16 +8,28 @@ async function carregarDashboardAc() {
   const iniMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  // Valor EFETIVAMENTE recebido no mês (tabela pagamentos — baixas parciais
-  // contam pelo valor real que entrou), com o personal da fatura.
-  const { data: pagos, error: e1 } = await db.from('pagamentos')
-    .select('valor, mensalidades(valor_personal)')
-    .gte('pago_em', iniMes + 'T00:00:00')
-    .lte('pago_em', fimMes + 'T23:59:59');
+  // Valor EFETIVAMENTE recebido no mês:
+  // (a) mensalidades — tabela pagamentos (baixas parciais contam pelo valor real que entrou)
+  // (b) cobranças avulsas de Parceiros Externos, pagas no mês
+  const [{ data: pagos, error: e1 }, { data: avulsas, error: e1b }] = await Promise.all([
+    db.from('pagamentos')
+      .select('valor, mensalidades(valor_personal)')
+      .gte('pago_em', iniMes + 'T00:00:00')
+      .lte('pago_em', fimMes + 'T23:59:59'),
+    db.from('cobrancas_avulsas')
+      .select('valor_total, valor_parceiro')
+      .eq('status', 'pago')
+      .gte('pago_em', iniMes + 'T00:00:00')
+      .lte('pago_em', fimMes + 'T23:59:59'),
+  ]);
 
-  if (!e1) {
-    const bruto = (pagos || []).reduce((s, p) => s + Number(p.valor), 0);
-    const repasse = (pagos || []).reduce((s, p) => s + Number(p.mensalidades?.valor_personal || 0), 0);
+  if (!e1 && !e1b) {
+    const brutoMens = (pagos || []).reduce((s, p) => s + Number(p.valor), 0);
+    const repasseMens = (pagos || []).reduce((s, p) => s + Number(p.mensalidades?.valor_personal || 0), 0);
+    const brutoAvulso = (avulsas || []).reduce((s, a) => s + Number(a.valor_total), 0);
+    const repasseAvulso = (avulsas || []).reduce((s, a) => s + Number(a.valor_parceiro), 0);
+    const bruto = brutoMens + brutoAvulso;
+    const repasse = repasseMens + repasseAvulso;
     document.getElementById('ack-bruto').textContent = brl(bruto);
     document.getElementById('ack-academia').textContent = brl(bruto - repasse);
     document.getElementById('ack-repasse').textContent = brl(repasse);
