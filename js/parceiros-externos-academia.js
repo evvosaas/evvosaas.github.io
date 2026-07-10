@@ -47,19 +47,29 @@ async function carregarParceirosAc() {
   const tb = document.getElementById('ac-cobav-rows');
   const linhas = cobrancas || [];
   if (!linhas.length) {
-    tb.innerHTML = '<tr><td colspan="8" class="vazio">Nenhuma cobrança avulsa lançada ainda.</td></tr>';
+    tb.innerHTML = '<tr><td colspan="9" class="vazio">Nenhuma cobrança avulsa lançada ainda.</td></tr>';
   } else {
-    tb.innerHTML = linhas.map(c => `
-      <tr>
+    tb.innerHTML = linhas.map(c => {
+      const statusBadge = c.status === 'pago' ? '<span class="badge b-ok">Pago</span>'
+        : c.status === 'atrasado' ? '<span class="badge b-late">Atrasado</span>'
+        : c.status === 'cancelado' ? '<span class="badge b-off">Cancelado</span>'
+        : '<span class="badge b-warn">Pendente</span>';
+      const repasseBadge = c.status_repasse === 'pago'
+        ? '<span class="badge b-ok">Repassado</span>' : '<span class="badge b-off">Repasse pendente</span>';
+      const link = c.origem === 'asaas' && (c.url_fatura || c.url_boleto)
+        ? ` <a href="${c.url_fatura || c.url_boleto}" target="_blank" title="Abrir fatura no Asaas">🔗</a>` : '';
+      return `<tr>
         <td>${fmt(c.data_cobranca)}</td>
         <td>${esc(c.alunos?.nome || '—')}</td>
         <td>${esc(c.parceiros_externos?.nome || '—')}</td>
-        <td>${esc(c.descricao)}</td>
+        <td>${esc(c.descricao)}${link}</td>
         <td><b>${brl(c.valor_total)}</b></td>
         <td>${brl(c.valor_parceiro)}</td>
         <td>${brl(c.valor_liquido_academia)}</td>
-        <td>${c.status_repasse === 'pago' ? '<span class="badge b-info">Repassado</span>' : '<span class="badge b-off">Repasse pendente</span>'}</td>
-      </tr>`).join('');
+        <td>${statusBadge}</td>
+        <td>${repasseBadge}</td>
+      </tr>`;
+    }).join('');
   }
 }
 
@@ -128,7 +138,21 @@ async function excluirParceiroAc(id) {
   carregarParceirosAc();
 }
 
-/* ---------------- NOVA COBRANÇA AVULSA (Fase 3 — lançamento manual) ---------------- */
+/* ---------------- NOVA COBRANÇA AVULSA (manual OU via Asaas) ---------------- */
+let acCaOrigemAtual = 'manual';
+let AC_CA_ALUNOS = [];
+
+function acCaSetOrigem(origem) {
+  acCaOrigemAtual = origem;
+  document.getElementById('ac-ca-btn-manual').className = 'btn ' + (origem === 'manual' ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('ac-ca-btn-asaas').className = 'btn ' + (origem === 'asaas' ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('ac-ca-data-label').textContent = origem === 'asaas' ? 'Vencimento do boleto/PIX' : 'Data';
+  document.getElementById('ac-ca-nota').textContent = origem === 'asaas'
+    ? 'Vai gerar um boleto/PIX de verdade no Asaas da academia (o aluno precisa ter CPF cadastrado). A cobrança fica "pendente" até o aluno pagar — o webhook dá baixa automática.'
+    : 'Lançamento registrado como já recebido (dinheiro, PIX direto ou cartão na hora). O repasse ao parceiro fica marcado como pendente até você confirmar o pagamento a ele.';
+  document.getElementById('ac-ca-btn-salvar').textContent = origem === 'asaas' ? 'Gerar cobrança no Asaas' : 'Salvar';
+}
+
 function acCaCalc() {
   const total = parseFloat(document.getElementById('ac-ca-total').value) || 0;
   const parc = parseFloat(document.getElementById('ac-ca-parcval').value) || 0;
@@ -139,11 +163,10 @@ async function abrirCobrancaAvulsaAc() {
   const parceirosAtivos = AC_PARC_LIST.filter(p => p.ativo !== false);
   if (!parceirosAtivos.length) { toast('Cadastre um parceiro externo antes de lançar uma cobrança.'); return; }
 
-  const [{ data: alunos }] = await Promise.all([
-    db.from('alunos').select('id, nome').eq('ativo', true).order('nome'),
-  ]);
+  const { data: alunos } = await db.from('alunos').select('id, nome, cpf, whatsapp').eq('ativo', true).order('nome');
+  AC_CA_ALUNOS = alunos || [];
 
-  document.getElementById('ac-ca-aluno').innerHTML = (alunos || [])
+  document.getElementById('ac-ca-aluno').innerHTML = AC_CA_ALUNOS
     .map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
   document.getElementById('ac-ca-parceiro').innerHTML = parceirosAtivos
     .map(p => `<option value="${p.id}">${esc(p.nome)}${p.tipo ? ' — ' + esc(p.tipo) : ''}</option>`).join('');
@@ -153,6 +176,7 @@ async function abrirCobrancaAvulsaAc() {
   document.getElementById('ac-ca-total').value = '';
   document.getElementById('ac-ca-parcval').value = '0';
   acCaCalc();
+  acCaSetOrigem('manual');
   openModal('m-cobranca-avulsa');
 }
 
@@ -171,21 +195,78 @@ async function salvarCobrancaAvulsaAc() {
   if (valor_total <= 0) { toast('Informe um valor total válido.'); return; }
   if (valor_parceiro > valor_total) { toast('O valor do parceiro não pode ser maior que o valor total.'); return; }
 
-  const { error } = await db.from('cobrancas_avulsas').insert({
-    academia_id: MEU_ACADEMIA_ID,
-    aluno_id,
-    parceiro_externo_id,
-    descricao,
-    data_cobranca,
-    valor_total,
-    valor_parceiro,
-    origem: 'manual',
-    status: 'pago',
-    pago_em: new Date().toISOString(),
-    status_repasse: 'pendente',
+  /* ---------- Origem: registro manual (já recebido) ---------- */
+  if (acCaOrigemAtual === 'manual') {
+    const { error } = await db.from('cobrancas_avulsas').insert({
+      academia_id: MEU_ACADEMIA_ID,
+      aluno_id,
+      parceiro_externo_id,
+      descricao,
+      data_cobranca,
+      valor_total,
+      valor_parceiro,
+      origem: 'manual',
+      status: 'pago',
+      pago_em: new Date().toISOString(),
+      status_repasse: 'pendente',
+    });
+    if (error) { toast('Erro ao salvar: ' + error.message); return; }
+    closeModal('m-cobranca-avulsa');
+    toast('Cobrança avulsa registrada ✓');
+    carregarParceirosAc();
+    return;
+  }
+
+  /* ---------- Origem: gerar boleto/PIX via Asaas ---------- */
+  const aluno = AC_CA_ALUNOS.find(a => a.id === aluno_id);
+  if (!aluno?.cpf) { toast('Este aluno não tem CPF cadastrado — necessário para gerar cobrança no Asaas.'); return; }
+
+  const btn = document.getElementById('ac-ca-btn-salvar');
+  btn.disabled = true; btn.textContent = 'Gerando…';
+
+  const { data, error } = await db.functions.invoke('criar-cobranca-avulsa-parceiro', {
+    body: { aluno_id, parceiro_externo_id, descricao, valor_total, valor_parceiro, data_cobranca },
   });
-  if (error) { toast('Erro ao salvar: ' + error.message); return; }
+
+  btn.disabled = false; btn.textContent = 'Gerar cobrança no Asaas';
+
+  if (error) {
+    let msg = error.message;
+    try { const body = await error.context?.json?.(); if (body?.erro) msg = body.erro; } catch (_) {}
+    toast('Não gerou: ' + msg);
+    return;
+  }
+  if (data?.erro) { toast('Não gerou: ' + data.erro); return; }
+
   closeModal('m-cobranca-avulsa');
-  toast('Cobrança avulsa registrada ✓');
+  mostrarCobrancaAvulsaGerada(aluno, data.cobranca);
   carregarParceirosAc();
+}
+
+/* ---------------- RESULTADO: link/PIX/boleto da cobrança gerada via Asaas ---------------- */
+function mostrarCobrancaAvulsaGerada(aluno, c) {
+  document.getElementById('ac-mf-aluno').textContent = aluno.nome;
+  document.getElementById('ac-mf-info').textContent = `${brl(c.valor_total)} · vencimento ${fmt(c.data_cobranca)}`;
+
+  const zap = (aluno.whatsapp || '').replace(/\D/g, '');
+  const msg = encodeURIComponent(
+    `*${document.getElementById('ac-nome-academia').textContent.toUpperCase()} - COBRANÇA*\n\n` +
+    `Olá, ${aluno.nome.split(' ')[0]}!\n` +
+    `Segue a cobrança referente a: ${c.descricao}\n\n` +
+    `Valor: *${brl(c.valor_total)}*\n` +
+    `Vencimento: ${fmt(c.data_cobranca)}\n\n` +
+    `Pague por boleto ou PIX no link:\n${c.url_fatura || c.url_boleto || ''}\n\n` +
+    `Qualquer dúvida é só chamar!`
+  );
+
+  const links = document.getElementById('ac-mf-links');
+  links.innerHTML = `
+    ${c.url_fatura ? `<a class="btn btn-primary" href="${c.url_fatura}" target="_blank">🔗 Abrir fatura no Asaas</a>` : ''}
+    ${zap ? `<a class="btn btn-primary" style="background:var(--ok)" href="https://wa.me/55${zap}?text=${msg}" target="_blank">💬 Enviar no WhatsApp do aluno</a>`
+          : '<div class="hint">Aluno sem WhatsApp cadastrado.</div>'}
+    ${c.url_boleto ? `<a class="btn btn-ghost" href="${c.url_boleto}" target="_blank">📄 PDF do boleto</a>` : ''}
+    ${c.pix_copia_cola ? `<div class="hint" style="max-width:none">PIX copia-e-cola (clique para copiar):</div>
+      <div class="linha-copiavel" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:11px 13px;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>toast('PIX copiado ✓'))">${esc(c.pix_copia_cola)}</div>` : ''}
+  `;
+  openModal('m-fatura-ac');
 }
