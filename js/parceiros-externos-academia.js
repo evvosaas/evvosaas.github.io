@@ -63,7 +63,11 @@ async function carregarParceirosAc() {
       const acoes = (c.status === 'pendente' || c.status === 'atrasado')
         ? `<button class="icon-btn" title="Dar baixa manual" onclick="abrirBaixaCobrancaAc(${c.id})">💰</button>
            <button class="icon-btn del" title="Cancelar cobrança" onclick="cancelarCobrancaAc(${c.id})">✕</button>`
-        : '';
+        : c.status === 'pago'
+          ? (c.status_repasse === 'pago'
+              ? `<button class="icon-btn" title="Desfazer repasse (marcar como pendente de novo)" onclick="desfazerRepasseAc(${c.id})">↩</button>`
+              : `<button class="icon-btn" title="Marcar repasse ao parceiro como pago" onclick="abrirRepasseAc(${c.id})">💸</button>`)
+          : '';
       return `<tr>
         <td>${fmt(c.data_cobranca)}</td>
         <td>${esc(c.alunos?.nome || '—')}</td>
@@ -341,5 +345,57 @@ async function cancelarCobrancaAc(id) {
     return;
   }
   toast(data.msg || 'Cobrança cancelada ✓');
+  carregarParceirosAc();
+}
+
+/* ---------------- REPASSE AO PARCEIRO (Fase 5) ---------------- */
+let acRpSelId = null;
+
+function abrirRepasseAc(id) {
+  const c = AC_COB_LIST.find(x => x.id === id);
+  if (!c) return;
+  acRpSelId = id;
+  document.getElementById('ac-rp-desc').value = `${c.descricao} — ${c.alunos?.nome || ''}`;
+  document.getElementById('ac-rp-parceiro').value = c.parceiros_externos?.nome || '';
+  document.getElementById('ac-rp-valor').value = brl(c.valor_parceiro);
+  document.getElementById('ac-rp-data').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('ac-rp-forma').value = 'pix';
+  document.getElementById('ac-rp-obs').value = '';
+  openModal('m-repasse-ca');
+}
+
+async function salvarRepasseAc() {
+  const c = AC_COB_LIST.find(x => x.id === acRpSelId);
+  if (!c) return;
+  const data_pagamento = document.getElementById('ac-rp-data').value;
+  if (!data_pagamento) { toast('Informe a data do repasse.'); return; }
+
+  const { error } = await db.from('cobrancas_avulsas').update({
+    status_repasse: 'pago',
+    data_pagamento_repasse: new Date(`${data_pagamento}T12:00:00`).toISOString(),
+    forma_pagamento_repasse: document.getElementById('ac-rp-forma').value,
+    observacao_repasse: document.getElementById('ac-rp-obs').value.trim() || null,
+  }).eq('id', acRpSelId);
+
+  if (error) { toast('Erro ao registrar repasse: ' + error.message); return; }
+  closeModal('m-repasse-ca');
+  toast(`Repasse de ${brl(c.valor_parceiro)} ao parceiro registrado ✓`);
+  carregarParceirosAc();
+}
+
+async function desfazerRepasseAc(id) {
+  const c = AC_COB_LIST.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Desfazer o repasse já registrado para "${c.descricao}"?\n\nIsso volta o status para "Repasse pendente" (não desfaz nenhum pagamento real — use só se marcou por engano).`)) return;
+
+  const { error } = await db.from('cobrancas_avulsas').update({
+    status_repasse: 'pendente',
+    data_pagamento_repasse: null,
+    forma_pagamento_repasse: null,
+    observacao_repasse: null,
+  }).eq('id', id);
+
+  if (error) { toast('Erro: ' + error.message); return; }
+  toast('Repasse voltou para pendente ✓');
   carregarParceirosAc();
 }
