@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.5<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.6<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -241,7 +241,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.5<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.6<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -331,8 +331,8 @@
     <div class="card">
       <div class="card-head"><h2>Cobranças avulsas lançadas</h2></div>
       <table>
-        <thead><tr><th>Data</th><th>Aluno</th><th>Parceiro</th><th>Descrição</th><th>Total</th><th>Parceiro</th><th>Líquido academia</th><th>Cobrança</th><th>Repasse</th></tr></thead>
-        <tbody id="ac-cobav-rows"><tr><td colspan="9" class="carregando">Carregando…</td></tr></tbody>
+        <thead><tr><th>Data</th><th>Aluno</th><th>Parceiro</th><th>Descrição</th><th>Total</th><th>Parceiro</th><th>Líquido academia</th><th>Cobrança</th><th>Repasse</th><th></th></tr></thead>
+        <tbody id="ac-cobav-rows"><tr><td colspan="10" class="carregando">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -626,6 +626,31 @@
   </div>
 </div>
 
+<!-- ================= MODAL BAIXA MANUAL — COBRANÇA AVULSA ================= -->
+<div class="overlay" id="m-baixa-ca">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Baixa manual — cobrança avulsa</div><button class="close" onclick="closeModal('m-baixa-ca')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Cobrança</label><input id="ac-bca-desc" disabled></div>
+      <div><label>Valor (R$)</label><input id="ac-bca-valor" disabled></div>
+      <div><label>Forma de recebimento</label>
+        <select id="ac-bca-forma">
+          <option value="dinheiro">Dinheiro</option>
+          <option value="pix_manual">PIX (fora do sistema)</option>
+          <option value="credito">Cartão de crédito</option>
+          <option value="debito">Cartão de débito</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="full"><label>Observação</label><input id="ac-bca-obs" placeholder="Ex.: aluno pagou em dinheiro na recepção"></div>
+    </div>
+    <div class="form-note" id="ac-bca-aviso" style="display:none">⚠ Ao confirmar, o boleto/PIX desta cobrança é CANCELADO no Asaas.</div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" id="ac-bca-salvar" onclick="confirmarBaixaCobrancaAc()">Confirmar baixa</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL PARCEIRO EXTERNO (academia) ================= -->
 <div class="overlay" id="m-parceiro-ac">
   <div class="modal">
@@ -663,6 +688,15 @@
       <div><label>Valor total (R$) *</label><input type="number" id="ac-ca-total" min="0" step="0.01" oninput="acCaCalc()"></div>
       <div><label>Valor do parceiro (R$)</label><input type="number" id="ac-ca-parcval" min="0" step="0.01" value="0" oninput="acCaCalc()"></div>
       <div><label>Valor líquido da academia</label><input id="ac-ca-liquido" disabled></div>
+      <div class="full" id="ac-ca-forma-wrap"><label>Forma de recebimento</label>
+        <select id="ac-ca-forma">
+          <option value="dinheiro">Dinheiro</option>
+          <option value="pix_manual">PIX (fora do sistema)</option>
+          <option value="credito">Cartão de crédito</option>
+          <option value="debito">Cartão de débito</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
     </div>
     <div class="form-note" id="ac-ca-nota">Lançamento registrado como já recebido (dinheiro, PIX direto ou cartão na hora). O repasse ao parceiro fica marcado como pendente até você confirmar o pagamento a ele.</div>
     <div class="modal-foot">
@@ -841,7 +875,7 @@
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=4"></script>
 <script src="js/personais-academia.js?v=1"></script>
-<script src="js/parceiros-externos-academia.js?v=3"></script>
+<script src="js/parceiros-externos-academia.js?v=4"></script>
 <script src="js/financeiro-academia.js?v=4"></script>
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
