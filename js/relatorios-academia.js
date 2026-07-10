@@ -25,6 +25,7 @@ function gerarRelatorioAtual() {
   if (relAtual === 'financeiro') gerarRelatorioFinanceiro();
   if (relAtual === 'repasses') gerarRelatorioRepasses();
   if (relAtual === 'participacao') gerarRelatorioParticipacao();
+  if (relAtual === 'avulsos') gerarRelatorioAvulsos();
   if (relAtual === 'inadimplentes') gerarRelatorioInadimplentes();
   if (relAtual === 'extrato') gerarRelatorioExtrato();
   if (relAtual === 'alunos') gerarRelatorioAlunos();
@@ -251,6 +252,7 @@ async function gerarRelatorioParticipacao() {
       <tbody>
         <tr><td>(+) Recebido dos alunos no período</td><td style="text-align:right">${brl(p.bruto_recebido)}</td></tr>
         <tr><td>(−) Parte dos personais (repasse)</td><td style="text-align:right;color:var(--late)">− ${brl(p.total_personais)}</td></tr>
+        <tr><td>(+) Líquido de Parceiros Externos (avulsos)</td><td style="text-align:right;color:var(--ok)">+ ${brl(p.avulsas_liquido || 0)}</td></tr>
         <tr class="rel-total-row"><td>Base para distribuição</td><td style="text-align:right">${brl(p.base_distribuicao)}</td></tr>
       </tbody>
     </table>
@@ -491,6 +493,93 @@ async function gerarRelatorioAlunos() {
     ${situacao !== 'ativos' ? secaoInativos : ''}
 
     <div class="rel-nota">Inclui todos os alunos já cadastrados na academia, independentemente de período.</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE PARCEIROS EXTERNOS (AVULSOS) ---------------- */
+async function gerarRelatorioAvulsos() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: cobrancas, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('cobrancas_avulsas')
+      .select('*, alunos(nome), parceiros_externos(nome)')
+      .eq('status', 'pago')
+      .gte('pago_em', `${pIni}T00:00:00`)
+      .lte('pago_em', `${pFim}T23:59:59`)
+      .order('pago_em'),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const lista = cobrancas || [];
+  const totalRecebido = lista.reduce((s, c) => s + Number(c.valor_total), 0);
+  const totalParceiros = lista.reduce((s, c) => s + Number(c.valor_parceiro), 0);
+  const totalLiquido = lista.reduce((s, c) => s + Number(c.valor_liquido_academia), 0);
+  const pendenteRepasse = lista.filter(c => c.status_repasse !== 'pago').reduce((s, c) => s + Number(c.valor_parceiro), 0);
+
+  // Agrupado por parceiro
+  const porParceiro = {};
+  lista.forEach(c => {
+    const nome = c.parceiros_externos?.nome || '—';
+    if (!porParceiro[nome]) porParceiro[nome] = { total: 0, parceiro: 0, liquido: 0, pendente: 0, qtd: 0 };
+    porParceiro[nome].total += Number(c.valor_total);
+    porParceiro[nome].parceiro += Number(c.valor_parceiro);
+    porParceiro[nome].liquido += Number(c.valor_liquido_academia);
+    porParceiro[nome].qtd += 1;
+    if (c.status_repasse !== 'pago') porParceiro[nome].pendente += Number(c.valor_parceiro);
+  });
+
+  const linhasParceiros = Object.entries(porParceiro).map(([nome, v]) => `
+    <tr>
+      <td>${esc(nome)}</td><td>${v.qtd}</td><td>${brl(v.total)}</td><td>${brl(v.parceiro)}</td>
+      <td style="font-weight:700">${brl(v.liquido)}</td>
+      <td style="color:${v.pendente > 0 ? 'var(--warn)' : 'var(--ok)'}">${brl(v.pendente)}</td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhuma cobrança avulsa paga no período.</td></tr>';
+
+  const linhasHistorico = lista.map(c => `
+    <tr>
+      <td>${fmt(String(c.pago_em).slice(0, 10))}</td>
+      <td>${esc(c.alunos?.nome || '—')}</td>
+      <td>${esc(c.parceiros_externos?.nome || '—')}</td>
+      <td>${esc(c.descricao)}</td>
+      <td>${brl(c.valor_total)}</td>
+      <td>${brl(c.valor_liquido_academia)}</td>
+      <td>${c.status_repasse === 'pago' ? '<span class="badge b-ok">Repassado</span>' : '<span class="badge b-off">Pendente</span>'}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhuma cobrança avulsa paga no período.</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Parceiros Externos (Avulsos)</h2>
+      <div class="periodo">Período: ${fmt(pIni)} a ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+    </div>
+
+    <div class="rel-kpis" style="grid-template-columns:repeat(4,1fr)">
+      <div class="rel-kpi"><div class="l">Recebido (total)</div><div class="v">${brl(totalRecebido)}</div></div>
+      <div class="rel-kpi"><div class="l">Parte dos parceiros</div><div class="v" style="color:var(--late)">${brl(totalParceiros)}</div></div>
+      <div class="rel-kpi"><div class="l">Líquido da academia</div><div class="v" style="color:var(--ok)">${brl(totalLiquido)}</div></div>
+      <div class="rel-kpi"><div class="l">Pendente de repasse</div><div class="v" style="color:var(--warn)">${brl(pendenteRepasse)}</div></div>
+    </div>
+
+    <div class="rel-section-title">Por parceiro externo</div>
+    <table class="rel-table">
+      <thead><tr><th>Parceiro</th><th>Qtd.</th><th>Total</th><th>Parte do parceiro</th><th>Líquido academia</th><th>Pendente de repasse</th></tr></thead>
+      <tbody>${linhasParceiros}</tbody>
+    </table>
+
+    <div class="rel-section-title">Histórico de cobranças pagas no período</div>
+    <table class="rel-table">
+      <thead><tr><th>Pago em</th><th>Aluno</th><th>Parceiro</th><th>Descrição</th><th>Total</th><th>Líquido academia</th><th>Repasse</th></tr></thead>
+      <tbody>${linhasHistorico}</tbody>
+    </table>
+
+    <div class="rel-nota">O valor líquido da academia (após descontar a parte do parceiro) já entra na base de distribuição dos sócios — veja o relatório de Participação. Este relatório usa a data de PAGAMENTO da cobrança, não a data de lançamento.</div>
   `;
 }
 
