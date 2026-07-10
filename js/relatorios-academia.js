@@ -58,7 +58,7 @@ async function gerarRelatorioFinanceiro() {
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('vw_financeiro').select('*').gte('vencimento', pIni).lte('vencimento', pFim).order('vencimento'),
     db.from('despesas').select('*').gte('vencimento', pIni).lte('vencimento', pFim),
-    db.from('cobrancas_avulsas').select('valor_total, valor_parceiro').eq('status', 'pago')
+    db.from('cobrancas_avulsas').select('valor_total, valor_parceiro, descricao, alunos(nome), parceiros_externos(nome)').eq('status', 'pago')
       .gte('data_cobranca', pIni).lte('data_cobranca', pFim),
   ]);
 
@@ -107,6 +107,16 @@ async function gerarRelatorioFinanceiro() {
     <tr><td>${esc(d.descricao)}</td><td>${esc(d.categoria)}</td><td>${fmt(d.vencimento)}</td><td>${brl(d.valor)}</td></tr>
   `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma despesa no período.</td></tr>';
 
+  // Discriminação do repasse a terceiros: personal (sobre mensalidade) + parceiro externo (sobre avulso)
+  const repassesPersonal = lista.filter(m => m.status === 'pago' && Number(m.valor_personal) > 0).map(m => `
+    <tr><td>Personal</td><td>${esc(m.personal || '—')}</td><td>Mensalidade — ${esc(m.aluno)}</td><td>${brl(m.valor_personal)}</td></tr>
+  `);
+  const repassesParceiro = (avulsas || []).filter(a => Number(a.valor_parceiro) > 0).map(a => `
+    <tr><td>Parceiro externo</td><td>${esc(a.parceiros_externos?.nome || '—')}</td><td>${esc(a.descricao)} — ${esc(a.alunos?.nome || '—')}</td><td>${brl(a.valor_parceiro)}</td></tr>
+  `);
+  const linhasRepasse = [...repassesPersonal, ...repassesParceiro].join('')
+    || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhum repasse no período.</td></tr>';
+
   alvo.innerHTML = `
     <div class="rel-header">
       <div class="marca"><div class="m">V</div><b>EVVO</b></div>
@@ -127,6 +137,13 @@ async function gerarRelatorioFinanceiro() {
     <table class="rel-table">
       <thead><tr><th>Aluno</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
       <tbody>${linhasFaturas}</tbody>
+    </table>
+
+    <div class="rel-section-title">Repasse a terceiros do período</div>
+    <table class="rel-table">
+      <thead><tr><th>Tipo</th><th>Nome</th><th>Referente a</th><th>Valor</th></tr></thead>
+      <tbody>${linhasRepasse}</tbody>
+      <tfoot><tr class="rel-total-row"><td colspan="3">Total repassado</td><td>${brl(repasse)}</td></tr></tfoot>
     </table>
 
     <div class="rel-section-title">Despesas do período</div>
