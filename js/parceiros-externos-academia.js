@@ -8,6 +8,7 @@
    ============================================================ */
 let AC_PARC_LIST = [];
 let acParcEditId = null;
+let AC_COB_LIST = [];
 
 /* ---------------- CARREGAR ---------------- */
 async function carregarParceirosAc() {
@@ -46,8 +47,9 @@ async function carregarParceirosAc() {
   /* ---------- Histórico de cobranças avulsas ---------- */
   const tb = document.getElementById('ac-cobav-rows');
   const linhas = cobrancas || [];
+  AC_COB_LIST = linhas;
   if (!linhas.length) {
-    tb.innerHTML = '<tr><td colspan="9" class="vazio">Nenhuma cobrança avulsa lançada ainda.</td></tr>';
+    tb.innerHTML = '<tr><td colspan="10" class="vazio">Nenhuma cobrança avulsa lançada ainda.</td></tr>';
   } else {
     tb.innerHTML = linhas.map(c => {
       const statusBadge = c.status === 'pago' ? '<span class="badge b-ok">Pago</span>'
@@ -58,6 +60,10 @@ async function carregarParceirosAc() {
         ? '<span class="badge b-ok">Repassado</span>' : '<span class="badge b-off">Repasse pendente</span>';
       const link = c.origem === 'asaas' && (c.url_fatura || c.url_boleto)
         ? ` <a href="${c.url_fatura || c.url_boleto}" target="_blank" title="Abrir fatura no Asaas">🔗</a>` : '';
+      const acoes = (c.status === 'pendente' || c.status === 'atrasado')
+        ? `<button class="icon-btn" title="Dar baixa manual" onclick="abrirBaixaCobrancaAc(${c.id})">💰</button>
+           <button class="icon-btn del" title="Cancelar cobrança" onclick="cancelarCobrancaAc(${c.id})">✕</button>`
+        : '';
       return `<tr>
         <td>${fmt(c.data_cobranca)}</td>
         <td>${esc(c.alunos?.nome || '—')}</td>
@@ -68,6 +74,7 @@ async function carregarParceirosAc() {
         <td>${brl(c.valor_liquido_academia)}</td>
         <td>${statusBadge}</td>
         <td>${repasseBadge}</td>
+        <td style="white-space:nowrap">${acoes}</td>
       </tr>`;
     }).join('');
   }
@@ -147,9 +154,10 @@ function acCaSetOrigem(origem) {
   document.getElementById('ac-ca-btn-manual').className = 'btn ' + (origem === 'manual' ? 'btn-primary' : 'btn-ghost');
   document.getElementById('ac-ca-btn-asaas').className = 'btn ' + (origem === 'asaas' ? 'btn-primary' : 'btn-ghost');
   document.getElementById('ac-ca-data-label').textContent = origem === 'asaas' ? 'Vencimento do boleto/PIX' : 'Data';
+  document.getElementById('ac-ca-forma-wrap').style.display = origem === 'manual' ? '' : 'none';
   document.getElementById('ac-ca-nota').textContent = origem === 'asaas'
-    ? 'Vai gerar um boleto/PIX de verdade no Asaas da academia (o aluno precisa ter CPF cadastrado). A cobrança fica "pendente" até o aluno pagar — o webhook dá baixa automática.'
-    : 'Lançamento registrado como já recebido (dinheiro, PIX direto ou cartão na hora). O repasse ao parceiro fica marcado como pendente até você confirmar o pagamento a ele.';
+    ? 'Vai gerar um boleto/PIX de verdade no Asaas da academia (o aluno precisa ter CPF cadastrado). A cobrança fica "pendente" até o aluno pagar — o webhook dá baixa automática (ou você pode dar baixa manual depois, se o aluno pagar por fora).'
+    : 'Lançamento registrado como já recebido, na forma escolhida abaixo. O repasse ao parceiro fica marcado como pendente até você confirmar o pagamento a ele.';
   document.getElementById('ac-ca-btn-salvar').textContent = origem === 'asaas' ? 'Gerar cobrança no Asaas' : 'Salvar';
 }
 
@@ -208,6 +216,7 @@ async function salvarCobrancaAvulsaAc() {
       origem: 'manual',
       status: 'pago',
       pago_em: new Date().toISOString(),
+      forma_pagamento: document.getElementById('ac-ca-forma').value,
       status_repasse: 'pendente',
     });
     if (error) { toast('Erro ao salvar: ' + error.message); return; }
@@ -269,4 +278,68 @@ function mostrarCobrancaAvulsaGerada(aluno, c) {
       <div class="linha-copiavel" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:11px 13px;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>toast('PIX copiado ✓'))">${esc(c.pix_copia_cola)}</div>` : ''}
   `;
   openModal('m-fatura-ac');
+}
+
+/* ---------------- BAIXA MANUAL (cobrança gerada via Asaas, paga por fora) ---------------- */
+let acBcaSelId = null;
+
+function abrirBaixaCobrancaAc(id) {
+  const c = AC_COB_LIST.find(x => x.id === id);
+  if (!c) return;
+  acBcaSelId = id;
+  document.getElementById('ac-bca-desc').value = `${c.descricao} — ${c.alunos?.nome || ''}`;
+  document.getElementById('ac-bca-valor').value = brl(c.valor_total);
+  document.getElementById('ac-bca-forma').value = 'dinheiro';
+  document.getElementById('ac-bca-obs').value = '';
+  document.getElementById('ac-bca-aviso').style.display = c.origem === 'asaas' ? 'block' : 'none';
+  openModal('m-baixa-ca');
+}
+
+async function confirmarBaixaCobrancaAc() {
+  const c = AC_COB_LIST.find(x => x.id === acBcaSelId);
+  if (!c) return;
+  if (!confirm(`Confirmar baixa manual de ${brl(c.valor_total)}?${c.origem === 'asaas' ? '\n\nO boleto/PIX será CANCELADO no Asaas.' : ''}`)) return;
+
+  const btn = document.getElementById('ac-bca-salvar');
+  btn.disabled = true; toast('Registrando baixa…');
+
+  const { data, error } = await db.functions.invoke('gerenciar-cobranca-avulsa', {
+    body: {
+      acao: 'baixa',
+      cobranca_id: acBcaSelId,
+      forma_detalhe: document.getElementById('ac-bca-forma').value,
+      observacao: document.getElementById('ac-bca-obs').value.trim(),
+    },
+  });
+  btn.disabled = false;
+  if (error || data?.erro) {
+    let msg = data?.erro || error.message;
+    try { const b = await error?.context?.json?.(); if (b?.erro) msg = b.erro; } catch (_) {}
+    toast('Não baixou: ' + msg);
+    return;
+  }
+  closeModal('m-baixa-ca');
+  toast(data.msg || 'Baixa registrada ✓');
+  carregarParceirosAc();
+}
+
+/* ---------------- CANCELAR COBRANÇA (pendente/atrasada) ---------------- */
+async function cancelarCobrancaAc(id) {
+  const c = AC_COB_LIST.find(x => x.id === id);
+  if (!c) return;
+  const avisoAsaas = c.origem === 'asaas' ? ' O boleto/PIX será cancelado no Asaas.' : '';
+  if (!confirm(`Cancelar a cobrança "${c.descricao}" (${brl(c.valor_total)})?${avisoAsaas}`)) return;
+
+  toast('Cancelando…');
+  const { data, error } = await db.functions.invoke('gerenciar-cobranca-avulsa', {
+    body: { acao: 'cancelar', cobranca_id: id },
+  });
+  if (error || data?.erro) {
+    let msg = data?.erro || error.message;
+    try { const b = await error?.context?.json?.(); if (b?.erro) msg = b.erro; } catch (_) {}
+    toast('Não cancelou: ' + msg);
+    return;
+  }
+  toast(data.msg || 'Cobrança cancelada ✓');
+  carregarParceirosAc();
 }
