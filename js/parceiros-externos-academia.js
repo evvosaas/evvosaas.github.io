@@ -303,7 +303,7 @@ async function confirmarBaixaCobrancaAc() {
   const btn = document.getElementById('ac-bca-salvar');
   btn.disabled = true; toast('Registrando baixa…');
 
-  const { data, error } = await db.functions.invoke('gerenciar-cobranca-avulsa', {
+  const { data, error } = await db.functions.invoke('gerenciar-cobranca-avulsa-ts', {
     body: {
       acao: 'baixa',
       cobranca_id: acBcaSelId,
@@ -331,7 +331,7 @@ async function cancelarCobrancaAc(id) {
   if (!confirm(`Cancelar a cobrança "${c.descricao}" (${brl(c.valor_total)})?${avisoAsaas}`)) return;
 
   toast('Cancelando…');
-  const { data, error } = await db.functions.invoke('gerenciar-cobranca-avulsa', {
+  const { data, error } = await db.functions.invoke('gerenciar-cobranca-avulsa-ts', {
     body: { acao: 'cancelar', cobranca_id: id },
   });
   if (error || data?.erro) {
