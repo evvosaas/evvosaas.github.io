@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.7<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -241,7 +241,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.7<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.8<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -626,6 +626,32 @@
   </div>
 </div>
 
+<!-- ================= MODAL REPASSE AO PARCEIRO (cobrança avulsa) ================= -->
+<div class="overlay" id="m-repasse-ca">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Marcar repasse como pago</div><button class="close" onclick="closeModal('m-repasse-ca')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Cobrança</label><input id="ac-rp-desc" disabled></div>
+      <div><label>Parceiro</label><input id="ac-rp-parceiro" disabled></div>
+      <div><label>Valor a repassar (R$)</label><input id="ac-rp-valor" disabled></div>
+      <div><label>Data do repasse</label><input type="date" id="ac-rp-data"></div>
+      <div><label>Forma de pagamento</label>
+        <select id="ac-rp-forma">
+          <option value="pix">PIX</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="transferencia">Transferência</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="full"><label>Observação</label><input id="ac-rp-obs" placeholder="Opcional"></div>
+    </div>
+    <div class="modal-foot">
+      <div class="hint">Marca que o valor já foi entregue ao parceiro externo — não gera nenhuma cobrança nem movimenta o Asaas.</div>
+      <button class="btn btn-primary" onclick="salvarRepasseAc()">Confirmar repasse</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL BAIXA MANUAL — COBRANÇA AVULSA ================= -->
 <div class="overlay" id="m-baixa-ca">
   <div class="modal">
@@ -875,7 +901,7 @@
 <script src="js/dashboard-academia.js?v=1"></script>
 <script src="js/alunos-academia.js?v=4"></script>
 <script src="js/personais-academia.js?v=1"></script>
-<script src="js/parceiros-externos-academia.js?v=5"></script>
+<script src="js/parceiros-externos-academia.js?v=6"></script>
 <script src="js/financeiro-academia.js?v=4"></script>
 <script src="js/despesas-academia.js?v=1"></script>
 <script src="js/socios-academia.js?v=2"></script>
