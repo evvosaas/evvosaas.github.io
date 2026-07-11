@@ -12,9 +12,9 @@ function selecionarRelatorio(tipo, el) {
   document.querySelectorAll('#v-ac-relatorios .fchip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
 
-  document.getElementById('rel-filtros-periodo').style.display = tipo === 'extrato' || tipo === 'alunos' ? 'none' : 'flex';
+  document.getElementById('rel-filtros-periodo').style.display = (tipo === 'extrato' || tipo === 'alunos' || tipo === 'vencplano') ? 'none' : 'flex';
   document.getElementById('rel-filtros-aluno').style.display = tipo === 'extrato' ? 'flex' : 'none';
-  document.getElementById('rel-filtros-nenhum').style.display = tipo === 'alunos' ? 'flex' : 'none';
+  document.getElementById('rel-filtros-nenhum').style.display = (tipo === 'alunos' || tipo === 'vencplano') ? 'flex' : 'none';
   document.getElementById('rel-alunos-colunas').style.display = tipo === 'alunos' ? 'flex' : 'none';
 
   if (tipo === 'extrato') { popularSelectAlunos(); }
@@ -27,6 +27,7 @@ function gerarRelatorioAtual() {
   if (relAtual === 'participacao') gerarRelatorioParticipacao();
   if (relAtual === 'avulsos') gerarRelatorioAvulsos();
   if (relAtual === 'outras') gerarRelatorioOutrasReceitas();
+  if (relAtual === 'vencplano') gerarRelatorioVencimentosPlano();
   if (relAtual === 'inadimplentes') gerarRelatorioInadimplentes();
   if (relAtual === 'extrato') gerarRelatorioExtrato();
   if (relAtual === 'alunos') gerarRelatorioAlunos();
@@ -704,6 +705,71 @@ async function gerarRelatorioOutrasReceitas() {
     </table>
 
     <div class="rel-nota">100% do valor pago já entra na base de distribuição dos sócios — não há repasse nessa fonte de receita. Veja o relatório de Participação para o total consolidado.</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE VENCIMENTOS DE PLANO ---------------- */
+async function gerarRelatorioVencimentosPlano() {
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: cfgPlano }, { data: alunos, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('config').select('valor').eq('chave', 'alerta_vencimento_plano_dias').maybeSingle(),
+    db.from('vw_alunos_completo').select('nome, plano, whatsapp, data_vencimento_plano')
+      .eq('ativo', true).not('data_vencimento_plano', 'is', null)
+      .order('data_vencimento_plano', { ascending: true }),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const diasAlerta = parseInt(cfgPlano?.valor) || 30;
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const lista = alunos || [];
+
+  const calcSituacao = venc => {
+    const diff = Math.round((new Date(venc) - new Date(hojeStr)) / 86400000);
+    if (diff < 0) return { texto: `Vencido há ${Math.abs(diff)} dia(s)`, classe: 'b-late', urgente: true, diff };
+    if (diff === 0) return { texto: 'Vence hoje', classe: 'b-late', urgente: true, diff };
+    if (diff <= diasAlerta) return { texto: `Vence em ${diff} dia(s)`, classe: 'b-warn', urgente: true, diff };
+    return { texto: `Vence em ${diff} dia(s)`, classe: 'b-ok', urgente: false, diff };
+  };
+
+  const comSituacao = lista.map(a => ({ ...a, sit: calcSituacao(a.data_vencimento_plano) }));
+  const vencidos = comSituacao.filter(a => a.sit.diff < 0).length;
+  const vencendoLogo = comSituacao.filter(a => a.sit.diff >= 0 && a.sit.diff <= diasAlerta).length;
+  const emDia = comSituacao.filter(a => a.sit.diff > diasAlerta).length;
+
+  const linhas = comSituacao.map((a, i) => `
+    <tr>
+      <td><div class="acad-cell"><div class="av" style="background:${corDe(i)}">${ini(a.nome)}</div><div class="nm">${esc(a.nome)}</div></div></td>
+      <td>${esc(a.plano || '—')}</td>
+      <td>${esc(a.whatsapp || '—')}</td>
+      <td>${fmt(a.data_vencimento_plano)}</td>
+      <td><span class="badge ${a.sit.classe}">${a.sit.texto}</span></td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno com data de vencimento de plano cadastrada.</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Vencimentos de Plano</h2>
+      <div class="periodo">Alerta configurado: ${diasAlerta} dia(s) de antecedência</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+    </div>
+
+    <div class="rel-kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="rel-kpi"><div class="l">Vencidos</div><div class="v" style="color:var(--late)">${vencidos}</div></div>
+      <div class="rel-kpi"><div class="l">Vencendo em até ${diasAlerta} dias</div><div class="v" style="color:var(--warn)">${vencendoLogo}</div></div>
+      <div class="rel-kpi"><div class="l">Em dia</div><div class="v" style="color:var(--ok)">${emDia}</div></div>
+    </div>
+
+    <div class="rel-section-title">Alunos com data de vencimento de plano cadastrada</div>
+    <table class="rel-table">
+      <thead><tr><th>Aluno</th><th>Plano</th><th>WhatsApp</th><th>Vencimento</th><th>Situação</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+
+    <div class="rel-nota">Alunos sem data de início/vencimento de plano cadastrada não aparecem aqui — preencha no cadastro do aluno para incluí-los neste controle.</div>
   `;
 }
 
