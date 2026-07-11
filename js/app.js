@@ -35,6 +35,14 @@ const cores = ['#ff5a2b', '#8a4bd6', '#2b6bd9', '#c73e6b', '#12a150', '#c67c00',
 const corDe = i => cores[i % cores.length];
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+// Calcula a data de vencimento de um plano: início + N meses, com o dia
+// ajustado se o mês de destino for mais curto (ex: 31/01 + 1 mês = 28/02).
+function calcVencimentoPlano(iniStr, meses) {
+  const [ano, mes, dia] = iniStr.split('-').map(Number);
+  const venc = new Date(ano, mes - 1 + meses, dia);
+  return `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, '0')}-${String(venc.getDate()).padStart(2, '0')}`;
+}
+
 let tt;
 function toast(msg) {
   document.getElementById('toast-msg').textContent = msg;
