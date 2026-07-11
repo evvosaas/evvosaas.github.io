@@ -41,6 +41,7 @@ async function carregarSociosAc() {
     document.getElementById('ac-c-bruto').textContent = brl(p.bruto_recebido);
     document.getElementById('ac-c-repasse').textContent = '− ' + brl(p.total_personais);
     document.getElementById('ac-c-avulsos').textContent = '+ ' + brl(p.avulsas_liquido || 0);
+    document.getElementById('ac-c-outras').textContent = '+ ' + brl(p.outras_liquido || 0);
     document.getElementById('ac-c-base').textContent = brl(p.base_distribuicao);
     document.getElementById('ac-c-despesas').textContent = brl(p.despesas_periodo);
   }
