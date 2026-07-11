@@ -49,6 +49,44 @@ async function carregarDashboardAc() {
   document.getElementById('ack-atraso').textContent = brl(totAtraso);
   document.getElementById('ack-atraso-qtd').textContent = `${(atrasados || []).length} fatura(s) vencida(s)`;
 
+  // ---------- Planos vencendo ou vencidos (roda ANTES da seção abaixo, que tem returns antecipados) ----------
+  const { data: cfgPlano } = await db.from('config')
+    .select('valor').eq('chave', 'alerta_vencimento_plano_dias').maybeSingle();
+  const diasAlerta = parseInt(cfgPlano?.valor) || 30;
+
+  const hojeStr = hoje.toISOString().slice(0, 10);
+  const limiteStr = new Date(hoje.getTime() + diasAlerta * 86400000).toISOString().slice(0, 10);
+
+  const { data: planosVencendo, error: e3 } = await db.from('vw_alunos_completo')
+    .select('nome, plano, data_vencimento_plano')
+    .eq('ativo', true)
+    .not('data_vencimento_plano', 'is', null)
+    .lte('data_vencimento_plano', limiteStr)
+    .order('data_vencimento_plano', { ascending: true })
+    .limit(10);
+
+  const tbPlano = document.getElementById('ac-dash-planos-rows');
+  if (e3) {
+    tbPlano.innerHTML = `<tr><td colspan="4" class="vazio">Erro ao carregar: ${esc(e3.message)}</td></tr>`;
+  } else if (!planosVencendo || !planosVencendo.length) {
+    tbPlano.innerHTML = `<tr><td colspan="4" class="vazio">Nenhum plano vencendo nos próximos ${diasAlerta} dias. 🎉</td></tr>`;
+  } else {
+    tbPlano.innerHTML = planosVencendo.map((a, i) => {
+      const diffDias = Math.round((new Date(a.data_vencimento_plano) - new Date(hojeStr)) / 86400000);
+      const situacao = diffDias < 0
+        ? `<span class="badge b-late">Vencido há ${Math.abs(diffDias)} dia(s)</span>`
+        : diffDias === 0
+          ? '<span class="badge b-late">Vence hoje</span>'
+          : `<span class="badge b-warn">Vence em ${diffDias} dia(s)</span>`;
+      return `<tr>
+        <td><div class="acad-cell"><div class="av" style="background:${corDe(i)}">${ini(a.nome)}</div><div class="nm">${esc(a.nome)}</div></div></td>
+        <td>${esc(a.plano || '—')}</td>
+        <td>${fmt(a.data_vencimento_plano)}</td>
+        <td>${situacao}</td>
+      </tr>`;
+    }).join('');
+  }
+
   // Vencimentos próximos + atrasos
   const { data: lista, error: e2 } = await db.from('vw_financeiro')
     .select('aluno, vencimento, valor_total, status')
@@ -68,43 +106,6 @@ async function carregarDashboardAc() {
       <td><b>${brl(m.valor_total)}</b></td>
       <td>${stBadgeAc(m.status)}</td>
     </tr>`).join('');
-
-  // ---------- Planos vencendo ou vencidos ----------
-  const { data: cfgPlano } = await db.from('config')
-    .select('valor').eq('chave', 'alerta_vencimento_plano_dias').maybeSingle();
-  const diasAlerta = parseInt(cfgPlano?.valor) || 30;
-
-  const hojeStr = hoje.toISOString().slice(0, 10);
-  const limiteStr = new Date(hoje.getTime() + diasAlerta * 86400000).toISOString().slice(0, 10);
-
-  const { data: planosVencendo, error: e3 } = await db.from('vw_alunos_completo')
-    .select('nome, plano, data_vencimento_plano')
-    .eq('ativo', true)
-    .not('data_vencimento_plano', 'is', null)
-    .lte('data_vencimento_plano', limiteStr)
-    .order('data_vencimento_plano', { ascending: true })
-    .limit(10);
-
-  const tbPlano = document.getElementById('ac-dash-planos-rows');
-  if (e3) { tbPlano.innerHTML = `<tr><td colspan="4" class="vazio">Erro ao carregar: ${esc(e3.message)}</td></tr>`; return; }
-  if (!planosVencendo || !planosVencendo.length) {
-    tbPlano.innerHTML = `<tr><td colspan="4" class="vazio">Nenhum plano vencendo nos próximos ${diasAlerta} dias. 🎉</td></tr>`;
-    return;
-  }
-  tbPlano.innerHTML = planosVencendo.map((a, i) => {
-    const diffDias = Math.round((new Date(a.data_vencimento_plano) - new Date(hojeStr)) / 86400000);
-    const situacao = diffDias < 0
-      ? `<span class="badge b-late">Vencido há ${Math.abs(diffDias)} dia(s)</span>`
-      : diffDias === 0
-        ? '<span class="badge b-late">Vence hoje</span>'
-        : `<span class="badge b-warn">Vence em ${diffDias} dia(s)</span>`;
-    return `<tr>
-      <td><div class="acad-cell"><div class="av" style="background:${corDe(i)}">${ini(a.nome)}</div><div class="nm">${esc(a.nome)}</div></div></td>
-      <td>${esc(a.plano || '—')}</td>
-      <td>${fmt(a.data_vencimento_plano)}</td>
-      <td>${situacao}</td>
-    </tr>`;
-  }).join('');
 }
 
 /* Badge de status — mesmo padrão do HealFit, com as classes já existentes no style.css */
