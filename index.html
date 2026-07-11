@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.24<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.25<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -245,7 +245,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.24<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.25<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -266,6 +266,13 @@
       <table>
         <thead><tr><th>Aluno</th><th>Vencimento</th><th>Total</th><th>Status</th></tr></thead>
         <tbody id="ac-dash-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-head"><h2>🔔 Planos vencendo ou vencidos</h2></div>
+      <table>
+        <thead><tr><th>Aluno</th><th>Plano</th><th>Vencimento</th><th>Situação</th></tr></thead>
+        <tbody id="ac-dash-planos-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -529,6 +536,7 @@
         <div class="fchip" onclick="selecionarRelatorio('participacao',this)">🤝 Participação</div>
         <div class="fchip" onclick="selecionarRelatorio('avulsos',this)">🧾 Parceiros Externos</div>
         <div class="fchip" onclick="selecionarRelatorio('outras',this)">💵 Outras Receitas</div>
+        <div class="fchip" onclick="selecionarRelatorio('vencplano',this)">🔔 Vencimentos de Plano</div>
         <div class="fchip" onclick="selecionarRelatorio('inadimplentes',this)">⚠ Inadimplentes</div>
         <div class="fchip" onclick="selecionarRelatorio('extrato',this)">👤 Extrato de aluno</div>
         <div class="fchip" onclick="selecionarRelatorio('alunos',this)">📋 Alunos ativos/inativos</div>
