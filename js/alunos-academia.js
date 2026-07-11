@@ -107,6 +107,9 @@ function abrirAlunoAc(id) {
   document.getElementById('ac-ma-cpf').value = a?.cpf || '';
   document.getElementById('ac-ma-zap').value = a?.whatsapp || '';
   document.getElementById('ac-ma-email').value = a?.email || '';
+  document.getElementById('ac-ma-nasc').value = a?.data_nascimento || '';
+  document.getElementById('ac-ma-plano-ini').value = a?.data_inicio_plano || '';
+  document.getElementById('ac-ma-plano-venc').value = a?.data_vencimento_plano || '';
   document.getElementById('ac-ma-plano').value = a?.plano_id || (AC_PLANOS[0]?.id ?? '');
   document.getElementById('ac-ma-dia').value = a?.dia_vencimento || 5;
   document.getElementById('ac-ma-pid').value = a?.personal_id || '';
@@ -132,6 +135,23 @@ function acMaCalc() {
     : `Fatura do aluno: ${brl(base)} (academia) — sem personal vinculado.`;
 }
 
+function acMaCalcVencimentoPlano() {
+  const ini = document.getElementById('ac-ma-plano-ini').value;
+  const hint = document.getElementById('ac-ma-plano-hint');
+  if (!ini) {
+    hint.textContent = 'Preenchendo o início, calculamos o vencimento sozinhos com base na duração do plano escolhido — mas você pode ajustar na mão se precisar.';
+    return;
+  }
+  const planoId = Number(document.getElementById('ac-ma-plano').value);
+  const plano = AC_PLANOS.find(p => p.id === planoId);
+  const meses = plano?.periodicidade_meses || 1;
+  const [ano, mes, dia] = ini.split('-').map(Number);
+  const venc = new Date(ano, mes - 1 + meses, dia);
+  const vencStr = `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, '0')}-${String(venc.getDate()).padStart(2, '0')}`;
+  document.getElementById('ac-ma-plano-venc').value = vencStr;
+  hint.textContent = `Calculado: início em ${fmt(ini)} + ${meses} mês(es) do plano "${plano?.nome || ''}" = vencimento em ${fmt(vencStr)}. Pode ajustar na mão se precisar.`;
+}
+
 async function salvarAlunoAc() {
   const nome = document.getElementById('ac-ma-nome').value.trim();
   if (!nome) { toast('Informe o nome do aluno.'); return; }
@@ -149,6 +169,9 @@ async function salvarAlunoAc() {
     cpf: cpf || null,
     whatsapp: document.getElementById('ac-ma-zap').value.trim() || null,
     email: document.getElementById('ac-ma-email').value.trim() || null,
+    data_nascimento: document.getElementById('ac-ma-nasc').value || null,
+    data_inicio_plano: document.getElementById('ac-ma-plano-ini').value || null,
+    data_vencimento_plano: document.getElementById('ac-ma-plano-venc').value || null,
     plano_id: Number(document.getElementById('ac-ma-plano').value),
     dia_vencimento: Number(document.getElementById('ac-ma-dia').value),
     personal_id: pid ? Number(pid) : null,
