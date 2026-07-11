@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.23<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.24<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -245,7 +245,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.23<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.24<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -500,6 +500,12 @@
           <input type="number" id="ac-cfg-dias" min="1" max="30" style="width:70px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px">
           dia(s) antes do vencimento
           <button class="btn btn-ghost btn-sm" onclick="salvarDiasAc()">Salvar</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;margin-top:14px">
+          Avisar sobre vencimento do PLANO do aluno com
+          <input type="number" id="ac-cfg-dias-plano" min="1" max="90" style="width:70px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px">
+          dia(s) de antecedência
+          <button class="btn btn-ghost btn-sm" onclick="salvarDiasVencimentoPlanoAc()">Salvar</button>
         </div>
       </div>
     </div>
