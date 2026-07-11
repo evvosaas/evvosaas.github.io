@@ -145,11 +145,67 @@ function acMaCalcVencimentoPlano() {
   const planoId = Number(document.getElementById('ac-ma-plano').value);
   const plano = AC_PLANOS.find(p => p.id === planoId);
   const meses = plano?.periodicidade_meses || 1;
-  const [ano, mes, dia] = ini.split('-').map(Number);
-  const venc = new Date(ano, mes - 1 + meses, dia);
-  const vencStr = `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, '0')}-${String(venc.getDate()).padStart(2, '0')}`;
+  const vencStr = calcVencimentoPlano(ini, meses);
   document.getElementById('ac-ma-plano-venc').value = vencStr;
   hint.textContent = `Calculado: início em ${fmt(ini)} + ${meses} mês(es) do plano "${plano?.nome || ''}" = vencimento em ${fmt(vencStr)}. Pode ajustar na mão se precisar.`;
+}
+
+/* ---------------- RENOVAÇÃO RÁPIDA DE PLANO (chamada do Dashboard/Relatórios) ---------------- */
+let acRvpAlunoId = null;
+let acRvpPlanos = [];
+
+async function abrirRenovarPlanoAc(alunoId) {
+  const [{ data: aluno, error }, { data: planos }] = await Promise.all([
+    db.from('alunos').select('id, nome, plano_id').eq('id', alunoId).single(),
+    db.from('planos').select('*').eq('ativo', true).order('valor'),
+  ]);
+  if (error || !aluno) { toast('Não achei esse aluno.'); return; }
+
+  acRvpAlunoId = alunoId;
+  acRvpPlanos = planos || [];
+  document.getElementById('ac-rvp-nome').value = aluno.nome;
+  document.getElementById('ac-rvp-plano').innerHTML = acRvpPlanos
+    .map(p => `<option value="${p.id}" ${p.id === aluno.plano_id ? 'selected' : ''}>${esc(p.nome)} — ${brl(p.valor)}</option>`).join('');
+  document.getElementById('ac-rvp-ini').value = new Date().toISOString().slice(0, 10);
+  acRenovarCalc();
+  openModal('m-renovar-plano-ac');
+}
+
+function acRenovarCalc() {
+  const ini = document.getElementById('ac-rvp-ini').value;
+  const planoId = Number(document.getElementById('ac-rvp-plano').value);
+  const plano = acRvpPlanos.find(p => p.id === planoId);
+  if (!ini || !plano) return;
+  const meses = plano.periodicidade_meses || 1;
+  const venc = calcVencimentoPlano(ini, meses);
+  document.getElementById('ac-rvp-venc').value = venc;
+  document.getElementById('ac-rvp-hint').textContent =
+    `Início em ${fmt(ini)} + ${meses} mês(es) do plano "${plano.nome}" = vencimento em ${fmt(venc)}.`;
+}
+
+async function salvarRenovacaoPlanoAc() {
+  const ini = document.getElementById('ac-rvp-ini').value;
+  const venc = document.getElementById('ac-rvp-venc').value;
+  const planoId = Number(document.getElementById('ac-rvp-plano').value);
+  if (!ini || !venc) { toast('Confirme a data de início.'); return; }
+
+  const { error } = await db.from('alunos').update({
+    plano_id: planoId,
+    data_inicio_plano: ini,
+    data_vencimento_plano: venc,
+  }).eq('id', acRvpAlunoId);
+
+  if (error) { toast('Erro ao renovar: ' + error.message); return; }
+  closeModal('m-renovar-plano-ac');
+  toast('Plano renovado ✓');
+
+  // Atualiza a tela atual (Dashboard ou Relatórios), se a função existir
+  if (typeof carregarDashboardAc === 'function' && document.getElementById('v-ac-dashboard')?.classList.contains('active')) {
+    carregarDashboardAc();
+  }
+  if (typeof gerarRelatorioAtual === 'function' && document.getElementById('v-ac-relatorios')?.classList.contains('active')) {
+    gerarRelatorioAtual();
+  }
 }
 
 async function salvarAlunoAc() {
