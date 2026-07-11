@@ -27,7 +27,7 @@ async function carregarOutrasReceitasAc() {
 
   const competenciaAtual = new Date().toISOString().slice(0, 7) + '-01';
   const jaGeradoEsseMes = new Set(
-    AC_OREC_LANC.filter(l => l.recorrente_id && l.competencia === competenciaAtual).map(l => l.recorrente_id)
+    AC_OREC_LANC.filter(l => l.recorrente_id && l.competencia === competenciaAtual && l.status !== 'cancelado').map(l => l.recorrente_id)
   );
 
   if (!AC_OREC_LIST.length) {
