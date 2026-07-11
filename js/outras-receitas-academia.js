@@ -46,10 +46,11 @@ async function carregarOutrasReceitasAc() {
         </div>
         <div class="loc" style="margin-top:8px;font-size:13px"><b>${brl(r.valor_mensal)}</b>/mês · vencimento dia ${r.dia_vencimento}</div>
         ${r.ativo === false ? '<div style="margin-top:10px"><span class="badge b-off">Inativo</span></div>' : `
-          <div style="margin-top:12px">
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
             ${jaGeradoEsseMes.has(r.id)
               ? '<span class="badge b-ok">Já gerado este mês</span>'
-              : `<button class="btn btn-ghost" style="width:100%" onclick="gerarCobrancaRecorrenteAc(${r.id})">📅 Gerar cobrança do mês</button>`}
+              : `<button class="btn btn-ghost" style="width:100%" onclick="gerarCobrancaRecorrenteAc(${r.id})">📅 Gerar cobrança do mês (manual)</button>
+                 ${r.personal_id ? `<button class="btn btn-primary" style="width:100%" onclick="gerarCobrancaRecorrenteAsaasAc(${r.id})">🔗 Gerar via Asaas (boleto/PIX)</button>` : ''}`}
           </div>`}
       </div>`).join('');
   }
@@ -69,9 +70,11 @@ async function carregarOutrasReceitasAc() {
            <button class="icon-btn del" title="Cancelar" onclick="cancelarOrecAc(${l.id})">✕</button>`
         : '';
       const dataRef = l.competencia ? fmt(l.competencia).slice(3) : fmt(l.data_lancamento);
+      const link = l.origem === 'asaas' && (l.url_fatura || l.url_boleto)
+        ? ` <a href="${l.url_fatura || l.url_boleto}" target="_blank" title="Abrir fatura no Asaas">🔗</a>` : '';
       return `<tr>
         <td>${dataRef}</td>
-        <td>${esc(l.descricao)}</td>
+        <td>${esc(l.descricao)}${link}</td>
         <td>${l.categoria ? esc(l.categoria) : '—'}</td>
         <td><b>${brl(l.valor)}</b></td>
         <td>${statusBadge}</td>
@@ -175,6 +178,50 @@ async function gerarCobrancaRecorrenteAc(id) {
   carregarOutrasReceitasAc();
 }
 
+async function gerarCobrancaRecorrenteAsaasAc(id) {
+  const r = AC_OREC_LIST.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`Gerar boleto/PIX no Asaas para "${r.descricao}" no valor de ${brl(r.valor_mensal)}?`)) return;
+
+  toast('Gerando cobrança no Asaas…');
+  const { data, error } = await db.functions.invoke('criar-cobranca-outras-receitas', {
+    body: { recorrente_id: id },
+  });
+  if (error || data?.erro) {
+    let msg = data?.erro || error.message;
+    try { const b = await error?.context?.json?.(); if (b?.erro) msg = b.erro; } catch (_) {}
+    toast('Não gerou: ' + msg);
+    return;
+  }
+  mostrarLancamentoOrecGerado(data.personal, data.lancamento);
+  carregarOutrasReceitasAc();
+}
+
+/* ---------------- RESULTADO: link/PIX/boleto gerado via Asaas ---------------- */
+function mostrarLancamentoOrecGerado(personal, l) {
+  document.getElementById('ac-mf-aluno').textContent = personal?.nome || l.descricao;
+  document.getElementById('ac-mf-info').textContent = `${brl(l.valor)} · vencimento ${fmt(l.data_lancamento)}`;
+
+  const zap = (personal?.whatsapp || '').replace(/\D/g, '');
+  const msg = encodeURIComponent(
+    `Olá! Segue a cobrança referente a: ${l.descricao}\n\n` +
+    `Valor: *${brl(l.valor)}*\n` +
+    `Vencimento: ${fmt(l.data_lancamento)}\n\n` +
+    `Pague por boleto ou PIX no link:\n${l.url_fatura || l.url_boleto || ''}`
+  );
+
+  const links = document.getElementById('ac-mf-links');
+  links.innerHTML = `
+    ${l.url_fatura ? `<a class="btn btn-primary" href="${l.url_fatura}" target="_blank">🔗 Abrir fatura no Asaas</a>` : ''}
+    ${zap ? `<a class="btn btn-primary" style="background:var(--ok)" href="https://wa.me/55${zap}?text=${msg}" target="_blank">💬 Enviar no WhatsApp</a>`
+          : '<div class="hint">Sem WhatsApp cadastrado.</div>'}
+    ${l.url_boleto ? `<a class="btn btn-ghost" href="${l.url_boleto}" target="_blank">📄 PDF do boleto</a>` : ''}
+    ${l.pix_copia_cola ? `<div class="hint" style="max-width:none">PIX copia-e-cola (clique para copiar):</div>
+      <div class="linha-copiavel" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:11px 13px;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>toast('PIX copiado ✓'))">${esc(l.pix_copia_cola)}</div>` : ''}
+  `;
+  openModal('m-fatura-ac');
+}
+
 /* ---------------- RECEITA AVULSA (sem vínculo recorrente) ---------------- */
 function abrirReceitaAvulsaAc() {
   document.getElementById('ac-rav-desc').value = '';
@@ -214,7 +261,24 @@ async function salvarReceitaAvulsaAc() {
 async function abrirBaixaOrecAc(id) {
   const l = AC_OREC_LANC.find(x => x.id === id);
   if (!l) return;
-  if (!confirm(`Confirmar recebimento de ${brl(l.valor)} — "${l.descricao}"?`)) return;
+  const avisoAsaas = l.origem === 'asaas' ? '\n\nO boleto/PIX será CANCELADO no Asaas.' : '';
+  if (!confirm(`Confirmar recebimento de ${brl(l.valor)} — "${l.descricao}"?${avisoAsaas}`)) return;
+
+  if (l.origem === 'asaas') {
+    toast('Registrando baixa…');
+    const { data, error } = await db.functions.invoke('gerenciar-outras-receitas', {
+      body: { acao: 'baixa', lancamento_id: id, forma_detalhe: 'outro', observacao: 'Baixa manual pelo painel' },
+    });
+    if (error || data?.erro) {
+      let msg = data?.erro || error.message;
+      try { const b = await error?.context?.json?.(); if (b?.erro) msg = b.erro; } catch (_) {}
+      toast('Não baixou: ' + msg);
+      return;
+    }
+    toast(data.msg || 'Baixa registrada ✓');
+    carregarOutrasReceitasAc();
+    return;
+  }
 
   const { error } = await db.from('outras_receitas').update({
     status: 'pago',
@@ -229,7 +293,25 @@ async function abrirBaixaOrecAc(id) {
 async function cancelarOrecAc(id) {
   const l = AC_OREC_LANC.find(x => x.id === id);
   if (!l) return;
-  if (!confirm(`Cancelar o lançamento "${l.descricao}" (${brl(l.valor)})?`)) return;
+  const avisoAsaas = l.origem === 'asaas' ? ' O boleto/PIX será cancelado no Asaas.' : '';
+  if (!confirm(`Cancelar o lançamento "${l.descricao}" (${brl(l.valor)})?${avisoAsaas}`)) return;
+
+  if (l.origem === 'asaas') {
+    toast('Cancelando…');
+    const { data, error } = await db.functions.invoke('gerenciar-outras-receitas', {
+      body: { acao: 'cancelar', lancamento_id: id },
+    });
+    if (error || data?.erro) {
+      let msg = data?.erro || error.message;
+      try { const b = await error?.context?.json?.(); if (b?.erro) msg = b.erro; } catch (_) {}
+      toast('Não cancelou: ' + msg);
+      return;
+    }
+    toast(data.msg || 'Lançamento cancelado ✓');
+    carregarOutrasReceitasAc();
+    return;
+  }
+
   const { error } = await db.from('outras_receitas').update({ status: 'cancelado' }).eq('id', id);
   if (error) { toast('Erro: ' + error.message); return; }
   toast('Lançamento cancelado ✓');
