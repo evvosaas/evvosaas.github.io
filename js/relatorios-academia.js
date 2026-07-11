@@ -103,6 +103,14 @@ async function gerarRelatorioFinanceiro() {
     </tr>`;
   }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma fatura no período.</td></tr>';
 
+  const linhasAvulsos = (avulsas || []).map(a => `
+    <tr>
+      <td>${esc(a.alunos?.nome || '—')}</td>
+      <td>${esc(a.parceiros_externos?.nome || '—')}</td>
+      <td>${esc(a.descricao)}</td>
+      <td>${brl(a.valor_total)}</td>
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma cobrança avulsa paga no período.</td></tr>';
+
   const linhasDespesas = (despesas || []).map(d => `
     <tr><td>${esc(d.descricao)}</td><td>${esc(d.categoria)}</td><td>${fmt(d.vencimento)}</td><td>${brl(d.valor)}</td></tr>
   `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma despesa no período.</td></tr>';
@@ -133,10 +141,16 @@ async function gerarRelatorioFinanceiro() {
       <div class="rel-kpi"><div class="l">Cancelado</div><div class="v">${brl(cancelado)}</div></div>
     </div>
 
-    <div class="rel-section-title">Faturas do período</div>
+    <div class="rel-section-title">Faturas do período (mensalidades)</div>
     <table class="rel-table">
       <thead><tr><th>Aluno</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
       <tbody>${linhasFaturas}</tbody>
+    </table>
+
+    <div class="rel-section-title">Cobranças avulsas pagas no período (Parceiros Externos)</div>
+    <table class="rel-table">
+      <thead><tr><th>Aluno</th><th>Parceiro</th><th>Descrição</th><th>Valor</th></tr></thead>
+      <tbody>${linhasAvulsos}</tbody>
     </table>
 
     <div class="rel-section-title">Repasse a terceiros do período</div>
