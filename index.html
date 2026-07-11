@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.19<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.21<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -245,7 +245,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.19<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.21<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -482,7 +482,7 @@
     <div class="card">
       <div class="card-head"><h2>Planos</h2><button class="btn btn-primary btn-sm" onclick="abrirPlanoAc(null)">+ Novo plano</button></div>
       <table>
-        <thead><tr><th>Plano</th><th>Valor mensal</th><th>Alunos ativos</th><th style="text-align:right">Ações</th></tr></thead>
+        <thead><tr><th>Plano</th><th>Valor mensal</th><th>Duração</th><th>Alunos ativos</th><th style="text-align:right">Ações</th></tr></thead>
         <tbody id="ac-planos-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
       </table>
     </div>
@@ -586,6 +586,15 @@
     <div class="form-grid">
       <div class="full"><label>Nome do plano *</label><input id="ac-mpl-nome" placeholder="Ex.: Mensal, Trimestral, Anual (nome comercial)"></div>
       <div class="full"><label>Valor mensal (R$) *</label><input type="number" id="ac-mpl-valor" min="0" step="0.01" placeholder="120,00"></div>
+      <div class="full"><label>Duração do compromisso</label>
+        <select id="ac-mpl-periodicidade">
+          <option value="1">Mensal (1 mês)</option>
+          <option value="3">Trimestral (3 meses)</option>
+          <option value="6">Semestral (6 meses)</option>
+          <option value="12">Anual (12 meses)</option>
+        </select>
+        <div class="hint" style="margin-top:6px">Usado só pra calcular o vencimento do plano do aluno e alertar a renovação — a cobrança continua mensal normalmente.</div>
+      </div>
       <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-mpl-ativo" checked style="width:17px;height:17px;flex:none">Plano ativo (aparece no cadastro de alunos)</label></div>
     </div>
     <div class="form-note">A cobrança é sempre mensal — "Trimestral"/"Anual" no nome indica só o compromisso do aluno (útil p/ oferecer desconto), não muda a periodicidade da fatura.</div>
