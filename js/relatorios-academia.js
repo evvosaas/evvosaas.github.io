@@ -26,6 +26,7 @@ function gerarRelatorioAtual() {
   if (relAtual === 'repasses') gerarRelatorioRepasses();
   if (relAtual === 'participacao') gerarRelatorioParticipacao();
   if (relAtual === 'avulsos') gerarRelatorioAvulsos();
+  if (relAtual === 'outras') gerarRelatorioOutrasReceitas();
   if (relAtual === 'inadimplentes') gerarRelatorioInadimplentes();
   if (relAtual === 'extrato') gerarRelatorioExtrato();
   if (relAtual === 'alunos') gerarRelatorioAlunos();
@@ -54,12 +55,14 @@ async function gerarRelatorioFinanceiro() {
   const alvo = document.getElementById('rel-conteudo');
   alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
 
-  const [{ data: nomeAcademia }, { data: faturas, error }, { data: despesas }, { data: avulsas }] = await Promise.all([
+  const [{ data: nomeAcademia }, { data: faturas, error }, { data: despesas }, { data: avulsas }, { data: outrasRec }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('vw_financeiro').select('*').gte('vencimento', pIni).lte('vencimento', pFim).order('vencimento'),
     db.from('despesas').select('*').gte('vencimento', pIni).lte('vencimento', pFim),
     db.from('cobrancas_avulsas').select('valor_total, valor_parceiro, descricao, alunos(nome), parceiros_externos(nome)').eq('status', 'pago')
       .gte('data_cobranca', pIni).lte('data_cobranca', pFim),
+    db.from('outras_receitas').select('valor, descricao, categoria').eq('status', 'pago')
+      .gte('data_lancamento', pIni).lte('data_lancamento', pFim),
   ]);
 
   if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
@@ -87,8 +90,9 @@ async function gerarRelatorioFinanceiro() {
 
   const avulsoBruto = (avulsas || []).reduce((s, a) => s + Number(a.valor_total), 0);
   const avulsoRepasse = (avulsas || []).reduce((s, a) => s + Number(a.valor_parceiro), 0);
+  const outrasBruto = (outrasRec || []).reduce((s, o) => s + Number(o.valor), 0);
 
-  const recebido = recebidoMensalidade + avulsoBruto;
+  const recebido = recebidoMensalidade + avulsoBruto + outrasBruto;
   const repasse = repasseMensalidade + avulsoRepasse;
   const totalDespesas = (despesas || []).reduce((s, d) => s + Number(d.valor), 0);
   const resultado = recebido - repasse - totalDespesas;
@@ -110,6 +114,13 @@ async function gerarRelatorioFinanceiro() {
       <td>${esc(a.descricao)}</td>
       <td>${brl(a.valor_total)}</td>
     </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma cobrança avulsa paga no período.</td></tr>';
+
+  const linhasOutras = (outrasRec || []).map(o => `
+    <tr>
+      <td>${esc(o.descricao)}</td>
+      <td>${o.categoria ? esc(o.categoria) : '—'}</td>
+      <td>${brl(o.valor)}</td>
+    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Nenhuma outra receita paga no período.</td></tr>';
 
   const linhasDespesas = (despesas || []).map(d => `
     <tr><td>${esc(d.descricao)}</td><td>${esc(d.categoria)}</td><td>${fmt(d.vencimento)}</td><td>${brl(d.valor)}</td></tr>
@@ -153,6 +164,12 @@ async function gerarRelatorioFinanceiro() {
       <tbody>${linhasAvulsos}</tbody>
     </table>
 
+    <div class="rel-section-title">Outras Receitas pagas no período</div>
+    <table class="rel-table">
+      <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th></tr></thead>
+      <tbody>${linhasOutras}</tbody>
+    </table>
+
     <div class="rel-section-title">Repasse a terceiros do período</div>
     <table class="rel-table">
       <thead><tr><th>Tipo</th><th>Nome</th><th>Referente a</th><th>Valor</th></tr></thead>
@@ -171,7 +188,7 @@ async function gerarRelatorioFinanceiro() {
       <span>Resultado do período (recebido − repasse a terceiros − despesas)</span>
       <span class="num" style="color:${resultado >= 0 ? 'var(--ok)' : 'var(--late)'}">${brl(resultado)}</span>
     </div>
-    <div class="rel-nota">Relatório informativo. "Recebido" inclui mensalidades + cobranças avulsas de Parceiros Externos, pelo valor efetivamente pago. "A receber", "Em atraso" e "Cancelado" referem-se apenas às mensalidades — veja o relatório de Parceiros Externos para o detalhamento de avulsos pendentes.</div>
+    <div class="rel-nota">Relatório informativo. "Recebido" inclui mensalidades + cobranças avulsas de Parceiros Externos + Outras Receitas, pelo valor efetivamente pago. "A receber", "Em atraso" e "Cancelado" referem-se apenas às mensalidades — veja os relatórios dedicados para o detalhamento de pendências de avulsos e outras receitas.</div>
   `;
 }
 
@@ -294,6 +311,7 @@ async function gerarRelatorioParticipacao() {
         <tr><td>(+) Recebido dos alunos no período</td><td style="text-align:right">${brl(p.bruto_recebido)}</td></tr>
         <tr><td>(−) Parte dos personais (repasse)</td><td style="text-align:right;color:var(--late)">− ${brl(p.total_personais)}</td></tr>
         <tr><td>(+) Líquido de Parceiros Externos (avulsos)</td><td style="text-align:right;color:var(--ok)">+ ${brl(p.avulsas_liquido || 0)}</td></tr>
+        <tr><td>(+) Outras Receitas</td><td style="text-align:right;color:var(--ok)">+ ${brl(p.outras_liquido || 0)}</td></tr>
         <tr class="rel-total-row"><td>Base para distribuição</td><td style="text-align:right">${brl(p.base_distribuicao)}</td></tr>
       </tbody>
     </table>
@@ -621,6 +639,71 @@ async function gerarRelatorioAvulsos() {
     </table>
 
     <div class="rel-nota">O valor líquido da academia (após descontar a parte do parceiro) já entra na base de distribuição dos sócios — veja o relatório de Participação. Este relatório usa a data de PAGAMENTO da cobrança, não a data de lançamento.</div>
+  `;
+}
+
+/* ---------------- RELATÓRIO DE OUTRAS RECEITAS ---------------- */
+async function gerarRelatorioOutrasReceitas() {
+  relPeriodoPadrao();
+  const pIni = document.getElementById('rel-ini').value;
+  const pFim = document.getElementById('rel-fim').value;
+  const alvo = document.getElementById('rel-conteudo');
+  alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
+
+  const [{ data: nomeAcademia }, { data: lanc, error }] = await Promise.all([
+    db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('outras_receitas')
+      .select('*, outras_receitas_recorrentes(descricao, personal_id, personais(nome))')
+      .gte('data_lancamento', pIni).lte('data_lancamento', pFim)
+      .order('data_lancamento'),
+  ]);
+
+  if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const lista = lanc || [];
+  const pagos = lista.filter(l => l.status === 'pago');
+  const totalPago = pagos.reduce((s, l) => s + Number(l.valor), 0);
+  const totalPendente = lista.filter(l => l.status === 'pendente' || l.status === 'atrasado').reduce((s, l) => s + Number(l.valor), 0);
+  const totalCancelado = lista.filter(l => l.status === 'cancelado').reduce((s, l) => s + Number(l.valor), 0);
+  const qtdRecorrente = pagos.filter(l => l.recorrente_id).length;
+  const qtdAvulsa = pagos.filter(l => !l.recorrente_id).length;
+
+  const linhas = lista.map(l => {
+    const statusBadge = l.status === 'pago' ? '<span class="badge b-ok">Pago</span>'
+      : l.status === 'atrasado' ? '<span class="badge b-late">Atrasado</span>'
+      : l.status === 'cancelado' ? '<span class="badge b-off">Cancelado</span>'
+      : '<span class="badge b-warn">Pendente</span>';
+    const tipo = l.recorrente_id ? 'Recorrente' : 'Avulsa';
+    const personal = l.outras_receitas_recorrentes?.personais?.nome || '—';
+    const dataRef = l.competencia ? fmt(l.competencia).slice(3) : fmt(l.data_lancamento);
+    return `<tr>
+      <td>${dataRef}</td><td>${tipo}</td><td>${esc(l.descricao)}</td><td>${esc(personal)}</td>
+      <td>${brl(l.valor)}</td><td>${statusBadge}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum lançamento no período.</td></tr>';
+
+  alvo.innerHTML = `
+    <div class="rel-header">
+      <div class="marca"><div class="m">V</div><b>EVVO</b></div>
+      <h2>${esc(nomeAcademia?.nome || 'Academia')} — Outras Receitas</h2>
+      <div class="periodo">Período: ${fmt(pIni)} a ${fmt(pFim)}</div>
+      <div class="gerado">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR').slice(0,5)}</div>
+    </div>
+
+    <div class="rel-kpis" style="grid-template-columns:repeat(4,1fr)">
+      <div class="rel-kpi"><div class="l">Recebido</div><div class="v" style="color:var(--ok)">${brl(totalPago)}</div></div>
+      <div class="rel-kpi"><div class="l">Pendente</div><div class="v" style="color:var(--warn)">${brl(totalPendente)}</div></div>
+      <div class="rel-kpi"><div class="l">Cancelado</div><div class="v">${brl(totalCancelado)}</div></div>
+      <div class="rel-kpi"><div class="l">Recorrentes × Avulsas (pagas)</div><div class="v" style="font-size:15px">${qtdRecorrente} × ${qtdAvulsa}</div></div>
+    </div>
+
+    <div class="rel-section-title">Lançamentos do período</div>
+    <table class="rel-table">
+      <thead><tr><th>Data/Competência</th><th>Tipo</th><th>Descrição</th><th>Personal</th><th>Valor</th><th>Status</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+
+    <div class="rel-nota">100% do valor pago já entra na base de distribuição dos sócios — não há repasse nessa fonte de receita. Veja o relatório de Participação para o total consolidado.</div>
   `;
 }
 
