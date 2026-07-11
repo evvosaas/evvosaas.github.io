@@ -46,6 +46,7 @@ async function carregarConfigAc() {
   (cfg || []).forEach(c => { mapa[c.chave] = c.valor; });
   document.getElementById('ac-cfg-pausa').checked = mapa['geracao_faturas_pausada'] === 'true';
   document.getElementById('ac-cfg-dias').value = mapa['dias_antes_vencimento_gerar'] || '10';
+  document.getElementById('ac-cfg-dias-plano').value = mapa['alerta_vencimento_plano_dias'] || '30';
   const lbl = document.getElementById('ac-cfg-pausa-lbl');
   if (mapa['geracao_faturas_pausada'] === 'true') {
     lbl.textContent = 'Status atual: PAUSADA — o cron diário NÃO emite novas faturas.';
@@ -80,6 +81,24 @@ async function salvarDiasAc() {
     .update({ valor: String(dias), updated_at: new Date().toISOString() })
     .eq('academia_id', MEU_ACADEMIA_ID).eq('chave', 'dias_antes_vencimento_gerar');
   toast(error ? 'Erro: ' + error.message : `Faturas passam a ser geradas ${dias} dia(s) antes do vencimento ✓`);
+}
+
+async function salvarDiasVencimentoPlanoAc() {
+  const dias = parseInt(document.getElementById('ac-cfg-dias-plano').value) || 30;
+  if (dias < 1 || dias > 90) { toast('Use um valor entre 1 e 90 dias.'); return; }
+
+  const { data, error: eUpd } = await db.from('config')
+    .update({ valor: String(dias), updated_at: new Date().toISOString() })
+    .eq('academia_id', MEU_ACADEMIA_ID).eq('chave', 'alerta_vencimento_plano_dias')
+    .select();
+
+  let error = eUpd;
+  if (!error && (!data || data.length === 0)) {
+    ({ error } = await db.from('config').insert({
+      academia_id: MEU_ACADEMIA_ID, chave: 'alerta_vencimento_plano_dias', valor: String(dias),
+    }));
+  }
+  toast(error ? 'Erro: ' + error.message : `Vamos avisar com ${dias} dia(s) de antecedência do vencimento do plano ✓`);
 }
 
 /* ---------------- PLANOS: NOVO / EDITAR ---------------- */
