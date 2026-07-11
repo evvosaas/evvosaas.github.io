@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.21<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.23<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -245,7 +245,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.21<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.23<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -853,7 +853,11 @@
       <div><label>CPF</label><input id="ac-ma-cpf" placeholder="000.000.000-00"></div>
       <div><label>WhatsApp (com DDD)</label><input id="ac-ma-zap" placeholder="44999990000"></div>
       <div class="full"><label>E-mail (opcional)</label><input id="ac-ma-email" placeholder="aluno@email.com"></div>
-      <div><label>Plano</label><select id="ac-ma-plano" onchange="acMaCalc()"></select></div>
+      <div><label>Data de nascimento</label><input type="date" id="ac-ma-nasc"></div>
+      <div><label>Início do plano atual</label><input type="date" id="ac-ma-plano-ini" onchange="acMaCalcVencimentoPlano()"></div>
+      <div><label>Vencimento do plano</label><input type="date" id="ac-ma-plano-venc"></div>
+      <div class="full"><div class="hint" id="ac-ma-plano-hint" style="max-width:none">Preenchendo o início, calculamos o vencimento sozinhos com base na duração do plano escolhido — mas você pode ajustar na mão se precisar.</div></div>
+      <div><label>Plano</label><select id="ac-ma-plano" onchange="acMaCalc();acMaCalcVencimentoPlano()"></select></div>
       <div><label>Dia de vencimento</label>
         <select id="ac-ma-dia"><option>5</option><option>10</option><option>15</option><option>20</option><option>25</option></select>
       </div>
