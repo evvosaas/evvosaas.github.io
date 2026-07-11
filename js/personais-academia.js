@@ -163,6 +163,7 @@ function abrirPersonalAc(id) {
   document.getElementById('ac-mp-title').textContent = p ? 'Editar personal' : 'Novo personal';
   document.getElementById('ac-mp-nome').value = p?.nome || '';
   document.getElementById('ac-mp-cref').value = p?.cref || '';
+  document.getElementById('ac-mp-cpf').value = p?.cpf || '';
   document.getElementById('ac-mp-zap').value = p?.whatsapp || '';
   document.getElementById('ac-mp-pix').value = p?.chave_pix || '';
   document.getElementById('ac-mp-ativo').checked = p ? p.ativo !== false : true;
@@ -175,6 +176,7 @@ async function salvarPersonalAc() {
   const registro = {
     nome,
     cref: document.getElementById('ac-mp-cref').value.trim() || null,
+    cpf: document.getElementById('ac-mp-cpf').value.trim() || null,
     whatsapp: document.getElementById('ac-mp-zap').value.trim() || null,
     chave_pix: document.getElementById('ac-mp-pix').value.trim() || null,
     ativo: document.getElementById('ac-mp-ativo').checked,
