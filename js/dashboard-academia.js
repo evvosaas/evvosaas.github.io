@@ -58,7 +58,7 @@ async function carregarDashboardAc() {
   const limiteStr = new Date(hoje.getTime() + diasAlerta * 86400000).toISOString().slice(0, 10);
 
   const { data: planosVencendo, error: e3 } = await db.from('vw_alunos_completo')
-    .select('nome, plano, data_vencimento_plano')
+    .select('id, nome, plano, data_vencimento_plano')
     .eq('ativo', true)
     .not('data_vencimento_plano', 'is', null)
     .lte('data_vencimento_plano', limiteStr)
@@ -67,9 +67,9 @@ async function carregarDashboardAc() {
 
   const tbPlano = document.getElementById('ac-dash-planos-rows');
   if (e3) {
-    tbPlano.innerHTML = `<tr><td colspan="4" class="vazio">Erro ao carregar: ${esc(e3.message)}</td></tr>`;
+    tbPlano.innerHTML = `<tr><td colspan="5" class="vazio">Erro ao carregar: ${esc(e3.message)}</td></tr>`;
   } else if (!planosVencendo || !planosVencendo.length) {
-    tbPlano.innerHTML = `<tr><td colspan="4" class="vazio">Nenhum plano vencendo nos próximos ${diasAlerta} dias. 🎉</td></tr>`;
+    tbPlano.innerHTML = `<tr><td colspan="5" class="vazio">Nenhum plano vencendo nos próximos ${diasAlerta} dias. 🎉</td></tr>`;
   } else {
     tbPlano.innerHTML = planosVencendo.map((a, i) => {
       const diffDias = Math.round((new Date(a.data_vencimento_plano) - new Date(hojeStr)) / 86400000);
@@ -83,6 +83,7 @@ async function carregarDashboardAc() {
         <td>${esc(a.plano || '—')}</td>
         <td>${fmt(a.data_vencimento_plano)}</td>
         <td>${situacao}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="abrirRenovarPlanoAc(${a.id})">🔄 Renovar</button></td>
       </tr>`;
     }).join('');
   }
