@@ -716,7 +716,7 @@ async function gerarRelatorioVencimentosPlano() {
   const [{ data: nomeAcademia }, { data: cfgPlano }, { data: alunos, error }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('config').select('valor').eq('chave', 'alerta_vencimento_plano_dias').maybeSingle(),
-    db.from('vw_alunos_completo').select('nome, plano, whatsapp, data_vencimento_plano')
+    db.from('vw_alunos_completo').select('id, nome, plano, whatsapp, data_vencimento_plano')
       .eq('ativo', true).not('data_vencimento_plano', 'is', null)
       .order('data_vencimento_plano', { ascending: true }),
   ]);
@@ -747,7 +747,8 @@ async function gerarRelatorioVencimentosPlano() {
       <td>${esc(a.whatsapp || '—')}</td>
       <td>${fmt(a.data_vencimento_plano)}</td>
       <td><span class="badge ${a.sit.classe}">${a.sit.texto}</span></td>
-    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhum aluno com data de vencimento de plano cadastrada.</td></tr>';
+      <td><button class="btn btn-ghost btn-sm" onclick="abrirRenovarPlanoAc(${a.id})">🔄 Renovar</button></td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum aluno com data de vencimento de plano cadastrada.</td></tr>';
 
   alvo.innerHTML = `
     <div class="rel-header">
@@ -765,7 +766,7 @@ async function gerarRelatorioVencimentosPlano() {
 
     <div class="rel-section-title">Alunos com data de vencimento de plano cadastrada</div>
     <table class="rel-table">
-      <thead><tr><th>Aluno</th><th>Plano</th><th>WhatsApp</th><th>Vencimento</th><th>Situação</th></tr></thead>
+      <thead><tr><th>Aluno</th><th>Plano</th><th>WhatsApp</th><th>Vencimento</th><th>Situação</th><th></th></tr></thead>
       <tbody>${linhas}</tbody>
     </table>
 
