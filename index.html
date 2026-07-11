@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.18<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.19<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -245,7 +245,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.18<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.19<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -448,6 +448,7 @@
         <div class="row"><span class="lbl">(+) Recebido dos alunos no período (valor que entrou)</span><span id="ac-c-bruto">—</span></div>
         <div class="row neg"><span class="lbl">(−) Parte dos personais (repasse, não entra na divisão)</span><span id="ac-c-repasse">—</span></div>
         <div class="row"><span class="lbl">(+) Líquido de Parceiros Externos (avulsos pagos no período)</span><span id="ac-c-avulsos" style="color:var(--ok)">—</span></div>
+        <div class="row"><span class="lbl">(+) Outras Receitas (pagas no período)</span><span id="ac-c-outras" style="color:var(--ok)">—</span></div>
         <div class="row total"><span>Base para distribuição (parte da academia)</span><span id="ac-c-base">—</span></div>
       </div>
       <div class="info-box">ℹ️ Despesas do período: <b id="ac-c-despesas" style="color:var(--ink)">—</b> — apenas informativo, <b>não</b> é descontado da base dos sócios.</div>
@@ -521,6 +522,7 @@
         <div class="fchip" onclick="selecionarRelatorio('repasses',this)">💸 Repasses</div>
         <div class="fchip" onclick="selecionarRelatorio('participacao',this)">🤝 Participação</div>
         <div class="fchip" onclick="selecionarRelatorio('avulsos',this)">🧾 Parceiros Externos</div>
+        <div class="fchip" onclick="selecionarRelatorio('outras',this)">💵 Outras Receitas</div>
         <div class="fchip" onclick="selecionarRelatorio('inadimplentes',this)">⚠ Inadimplentes</div>
         <div class="fchip" onclick="selecionarRelatorio('extrato',this)">👤 Extrato de aluno</div>
         <div class="fchip" onclick="selecionarRelatorio('alunos',this)">📋 Alunos ativos/inativos</div>
