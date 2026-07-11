@@ -182,6 +182,7 @@ function goAc(v, el) {
   if (v === 'ac-alunos')    carregarAlunosAc();
   if (v === 'ac-personais') carregarPersonaisAc();
   if (v === 'ac-parceiros') carregarParceirosAc();
+  if (v === 'ac-outras-receitas') carregarOutrasReceitasAc();
   if (v === 'ac-financeiro') carregarFinanceiroAc();
   if (v === 'ac-despesas')   carregarDespesasAc();
   if (v === 'ac-socios')     carregarSociosAc();
