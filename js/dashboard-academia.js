@@ -11,7 +11,8 @@ async function carregarDashboardAc() {
   // Valor EFETIVAMENTE recebido no mês:
   // (a) mensalidades — tabela pagamentos (baixas parciais contam pelo valor real que entrou)
   // (b) cobranças avulsas de Parceiros Externos, pagas no mês
-  const [{ data: pagos, error: e1 }, { data: avulsas, error: e1b }] = await Promise.all([
+  // (c) Outras Receitas (recorrentes ou avulsas), pagas no mês — 100% líquido, sem repasse
+  const [{ data: pagos, error: e1 }, { data: avulsas, error: e1b }, { data: outras, error: e1c }] = await Promise.all([
     db.from('pagamentos')
       .select('valor, mensalidades(valor_personal)')
       .gte('pago_em', iniMes + 'T00:00:00')
@@ -21,14 +22,20 @@ async function carregarDashboardAc() {
       .eq('status', 'pago')
       .gte('pago_em', iniMes + 'T00:00:00')
       .lte('pago_em', fimMes + 'T23:59:59'),
+    db.from('outras_receitas')
+      .select('valor')
+      .eq('status', 'pago')
+      .gte('pago_em', iniMes + 'T00:00:00')
+      .lte('pago_em', fimMes + 'T23:59:59'),
   ]);
 
-  if (!e1 && !e1b) {
+  if (!e1 && !e1b && !e1c) {
     const brutoMens = (pagos || []).reduce((s, p) => s + Number(p.valor), 0);
     const repasseMens = (pagos || []).reduce((s, p) => s + Number(p.mensalidades?.valor_personal || 0), 0);
     const brutoAvulso = (avulsas || []).reduce((s, a) => s + Number(a.valor_total), 0);
     const repasseAvulso = (avulsas || []).reduce((s, a) => s + Number(a.valor_parceiro), 0);
-    const bruto = brutoMens + brutoAvulso;
+    const brutoOutras = (outras || []).reduce((s, o) => s + Number(o.valor), 0);
+    const bruto = brutoMens + brutoAvulso + brutoOutras;
     const repasse = repasseMens + repasseAvulso;
     document.getElementById('ack-bruto').textContent = brl(bruto);
     document.getElementById('ack-academia').textContent = brl(bruto - repasse);
