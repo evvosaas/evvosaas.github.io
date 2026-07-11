@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.26<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.27<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -245,7 +245,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.26<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.27<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -271,8 +271,8 @@
     <div class="card" style="margin-top:20px">
       <div class="card-head"><h2>🔔 Planos vencendo ou vencidos</h2></div>
       <table>
-        <thead><tr><th>Aluno</th><th>Plano</th><th>Vencimento</th><th>Situação</th></tr></thead>
-        <tbody id="ac-dash-planos-rows"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
+        <thead><tr><th>Aluno</th><th>Plano</th><th>Vencimento</th><th>Situação</th><th></th></tr></thead>
+        <tbody id="ac-dash-planos-rows"><tr><td colspan="5" class="carregando">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -724,6 +724,23 @@
     <div class="form-note" id="ac-bca-aviso" style="display:none">⚠ Ao confirmar, o boleto/PIX desta cobrança é CANCELADO no Asaas.</div>
     <div class="modal-foot">
       <button class="btn btn-primary" id="ac-bca-salvar" onclick="confirmarBaixaCobrancaAc()">Confirmar baixa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL RENOVAÇÃO RÁPIDA DE PLANO ================= -->
+<div class="overlay" id="m-renovar-plano-ac">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Renovar plano</div><button class="close" onclick="closeModal('m-renovar-plano-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Aluno</label><input id="ac-rvp-nome" disabled></div>
+      <div><label>Plano</label><select id="ac-rvp-plano" onchange="acRenovarCalc()"></select></div>
+      <div><label>Novo início do plano</label><input type="date" id="ac-rvp-ini" onchange="acRenovarCalc()"></div>
+      <div class="full"><label>Novo vencimento</label><input id="ac-rvp-venc" disabled></div>
+    </div>
+    <div class="modal-foot">
+      <div class="hint" id="ac-rvp-hint" style="max-width:none">—</div>
+      <button class="btn btn-primary" onclick="salvarRenovacaoPlanoAc()">Confirmar renovação</button>
     </div>
   </div>
 </div>
