@@ -65,7 +65,8 @@ function renderAlunosAc() {
   if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum aluno encontrado.</td></tr>'; return; }
 
   tb.innerHTML = lista.map((a, i) => {
-    const total = Number(a.valor_plano) + Number(a.valor_personal || 0);
+    const valorBase = a.valor_personalizado ?? a.valor_plano;
+    const total = Number(valorBase) + Number(a.valor_personal || 0);
     const tagPers = a.personal
       ? `<span class="tag-p">🏋 ${esc(a.personal)}</span>`
       : '<span style="color:var(--muted);font-size:13px">—</span>';
@@ -80,7 +81,7 @@ function renderAlunosAc() {
         <div><div class="nm">${esc(a.nome)}</div><div class="loc">${esc(a.whatsapp || a.cpf || '')}</div></div></div></td>
       <td>${esc(a.plano)}<div class="loc">venc. dia ${a.dia_vencimento}</div></td>
       <td>${tagPers}</td>
-      <td><b>${brl(total)}</b>${a.valor_personal > 0 ? `<div class="loc">${brl(a.valor_plano)} + ${brl(a.valor_personal)} personal</div>` : ''}</td>
+      <td><b>${brl(total)}</b>${a.valor_personalizado != null ? '<div class="loc">valor personalizado</div>' : ''}${a.valor_personal > 0 ? `<div class="loc">${brl(valorBase)} + ${brl(a.valor_personal)} personal</div>` : ''}</td>
       <td>${situacao}</td>
       <td><div class="acts">
         <button class="icon-btn" title="Gerar fatura" onclick="gerarFaturaAc(${a.id})">⚡</button>
