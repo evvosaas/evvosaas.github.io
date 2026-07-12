@@ -50,7 +50,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.28<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.29<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -245,7 +245,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.28<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.29<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -889,6 +889,9 @@
       <div><label>Vencimento do plano</label><input type="date" id="ac-ma-plano-venc"></div>
       <div class="full"><div class="hint" id="ac-ma-plano-hint" style="max-width:none">Preenchendo o início, calculamos o vencimento sozinhos com base na duração do plano escolhido — mas você pode ajustar na mão se precisar.</div></div>
       <div><label>Plano</label><select id="ac-ma-plano" onchange="acMaCalc();acMaCalcVencimentoPlano()"></select></div>
+      <div><label>Valor personalizado (R$) <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+        <input id="ac-ma-valor-custom" type="number" min="0" step="0.01" placeholder="Deixe em branco pra usar o valor do plano" oninput="acMaCalc()">
+      </div>
       <div><label>Dia de vencimento</label>
         <input type="number" id="ac-ma-dia" min="1" max="28">
       </div>
