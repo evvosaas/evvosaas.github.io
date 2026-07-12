@@ -482,6 +482,7 @@ async function gerarRelatorioAlunos() {
     valorPlano: document.getElementById('col-valor-plano')?.checked,
     valorPersonal: document.getElementById('col-valor-personal')?.checked,
     cadastro: document.getElementById('col-cadastro')?.checked,
+    endereco: document.getElementById('col-endereco')?.checked,
   };
 
   const [{ data: nomeAcademia }, { data: alunos, error }] = await Promise.all([
@@ -506,6 +507,17 @@ async function gerarRelatorioAlunos() {
   if (col.valorPlano) cabecalhos.push('Valor plano');
   if (col.valorPersonal) cabecalhos.push('Valor personal');
   if (col.cadastro) cabecalhos.push('Cadastrado em');
+  if (col.endereco) cabecalhos.push('Endereço completo');
+
+  const enderecoCompleto = a => {
+    const partes = [
+      a.endereco ? `${a.endereco}${a.numero ? ', ' + a.numero : ''}` : null,
+      a.bairro || null,
+      a.cidade ? `${a.cidade}${a.estado ? '/' + a.estado : ''}` : null,
+      a.cep ? `CEP ${a.cep}` : null,
+    ].filter(Boolean);
+    return partes.length ? partes.join(' — ') : '—';
+  };
 
   const linhaAluno = a => {
     const celulas = [esc(a.nome)];
@@ -517,6 +529,7 @@ async function gerarRelatorioAlunos() {
     if (col.valorPlano) celulas.push(brl(a.valor_plano));
     if (col.valorPersonal) celulas.push(Number(a.valor_personal) > 0 ? brl(a.valor_personal) : '—');
     if (col.cadastro) celulas.push(fmt(String(a.created_at).slice(0,10)));
+    if (col.endereco) celulas.push(esc(enderecoCompleto(a)));
     return `<tr>${celulas.map(c => `<td>${c}</td>`).join('')}</tr>`;
   };
 
@@ -717,7 +730,7 @@ async function gerarRelatorioVencimentosPlano() {
   const [{ data: nomeAcademia }, { data: cfgPlano }, { data: alunos, error }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('config').select('valor').eq('chave', 'alerta_vencimento_plano_dias').maybeSingle(),
-    db.from('vw_alunos_completo').select('id, nome, plano, whatsapp, data_vencimento_plano')
+    db.from('vw_alunos_completo').select('id, nome, cpf, plano, whatsapp, data_vencimento_plano')
       .eq('ativo', true).not('data_vencimento_plano', 'is', null)
       .order('data_vencimento_plano', { ascending: true }),
   ]);
@@ -742,7 +755,7 @@ async function gerarRelatorioVencimentosPlano() {
   const emDia = comSituacao.filter(a => a.sit.diff > diasAlerta).length;
 
   const linhas = comSituacao.map((a, i) => `
-    <tr>
+    <tr data-busca="${esc((a.nome + ' ' + (a.cpf || '') + ' ' + (a.whatsapp || '')).toLowerCase())}">
       <td><div class="acad-cell"><div class="av" style="background:${corDe(i)}">${ini(a.nome)}</div><div class="nm">${esc(a.nome)}</div></div></td>
       <td>${esc(a.plano || '—')}</td>
       <td>${esc(a.whatsapp || '—')}</td>
@@ -750,6 +763,9 @@ async function gerarRelatorioVencimentosPlano() {
       <td><span class="badge ${a.sit.classe}">${a.sit.texto}</span></td>
       <td><button class="btn btn-ghost btn-sm" onclick="abrirRenovarPlanoAc(${a.id})">🔄 Renovar</button></td>
     </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum aluno com data de vencimento de plano cadastrada.</td></tr>';
+
+  const buscaEl = document.getElementById('rel-vencplano-busca');
+  if (buscaEl) buscaEl.value = '';
 
   alvo.innerHTML = `
     <div class="rel-header">
@@ -776,8 +792,43 @@ async function gerarRelatorioVencimentosPlano() {
 }
 
 /* ---------------- IMPRIMIR ---------------- */
+function filtrarRelatorioVencplano() {
+  const termo = document.getElementById('rel-vencplano-busca').value.trim().toLowerCase();
+  document.querySelectorAll('#rel-conteudo table tbody tr[data-busca]').forEach(tr => {
+    tr.style.display = tr.dataset.busca.includes(termo) ? '' : 'none';
+  });
+}
+
 function imprimirRelatorio() {
   const conteudo = document.getElementById('rel-conteudo').innerHTML;
   document.getElementById('print-area').innerHTML = conteudo;
   window.print();
+}
+
+/* ---------------- EXPORTAR EXCEL (genérico — funciona em qualquer relatório) ---------------- */
+function exportarRelatorioExcel() {
+  const tabelas = document.querySelectorAll('#rel-conteudo table');
+  if (!tabelas.length) { toast('Nada para exportar ainda — gere o relatório primeiro.'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const nomesUsados = new Set();
+
+  tabelas.forEach((tabela, i) => {
+    // Tenta achar o título da seção logo acima da tabela (ex: "Repasse a terceiros do período")
+    let tituloEl = tabela.closest('table')?.previousElementSibling;
+    let nome = (tituloEl && tituloEl.classList?.contains('rel-section-title'))
+      ? tituloEl.textContent.trim() : `Tabela ${i + 1}`;
+    nome = nome.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 28) || `Tabela ${i + 1}`;
+    let nomeFinal = nome, n = 2;
+    while (nomesUsados.has(nomeFinal)) { nomeFinal = `${nome} (${n++})`; }
+    nomesUsados.add(nomeFinal);
+
+    const ws = XLSX.utils.table_to_sheet(tabela, { raw: false });
+    XLSX.utils.book_append_sheet(wb, ws, nomeFinal);
+  });
+
+  const tituloRel = document.querySelector('#rel-conteudo h2')?.textContent?.trim() || 'relatorio';
+  const nomeArquivo = tituloRel.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'relatorio';
+  const dataStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `${nomeArquivo}_${dataStr}.xlsx`);
 }
