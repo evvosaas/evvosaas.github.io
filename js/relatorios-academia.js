@@ -14,7 +14,8 @@ function selecionarRelatorio(tipo, el) {
 
   document.getElementById('rel-filtros-periodo').style.display = (tipo === 'extrato' || tipo === 'alunos' || tipo === 'vencplano') ? 'none' : 'flex';
   document.getElementById('rel-filtros-aluno').style.display = tipo === 'extrato' ? 'flex' : 'none';
-  document.getElementById('rel-filtros-nenhum').style.display = (tipo === 'alunos' || tipo === 'vencplano') ? 'flex' : 'none';
+  document.getElementById('rel-filtros-nenhum').style.display = tipo === 'alunos' ? 'flex' : 'none';
+  document.getElementById('rel-filtros-vencplano').style.display = tipo === 'vencplano' ? 'flex' : 'none';
   document.getElementById('rel-alunos-colunas').style.display = tipo === 'alunos' ? 'flex' : 'none';
 
   if (tipo === 'extrato') { popularSelectAlunos(); }
