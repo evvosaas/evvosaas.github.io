@@ -113,6 +113,12 @@ function abrirAlunoAc(id) {
   document.getElementById('ac-ma-plano-venc').value = a?.data_vencimento_plano || '';
   document.getElementById('ac-ma-plano').value = a?.plano_id || (AC_PLANOS[0]?.id ?? '');
   document.getElementById('ac-ma-valor-custom').value = a?.valor_personalizado ?? '';
+  document.getElementById('ac-ma-endereco').value = a?.endereco || '';
+  document.getElementById('ac-ma-numero').value = a?.numero || '';
+  document.getElementById('ac-ma-bairro').value = a?.bairro || '';
+  document.getElementById('ac-ma-cep').value = a?.cep || '';
+  document.getElementById('ac-ma-cidade').value = a?.cidade || '';
+  document.getElementById('ac-ma-estado').value = a?.estado || '';
   document.getElementById('ac-ma-dia').value = a?.dia_vencimento || 5;
   document.getElementById('ac-ma-pid').value = a?.personal_id || '';
   document.getElementById('ac-ma-pval').value = a?.valor_personal || 0;
@@ -236,6 +242,12 @@ async function salvarAlunoAc() {
     plano_id: Number(document.getElementById('ac-ma-plano').value),
     valor_personalizado: document.getElementById('ac-ma-valor-custom').value !== ''
       ? parseFloat(document.getElementById('ac-ma-valor-custom').value) : null,
+    endereco: document.getElementById('ac-ma-endereco').value.trim() || null,
+    numero: document.getElementById('ac-ma-numero').value.trim() || null,
+    bairro: document.getElementById('ac-ma-bairro').value.trim() || null,
+    cep: document.getElementById('ac-ma-cep').value.replace(/\D/g, '') || null,
+    cidade: document.getElementById('ac-ma-cidade').value.trim() || null,
+    estado: document.getElementById('ac-ma-estado').value.trim().toUpperCase() || null,
     dia_vencimento: Number(document.getElementById('ac-ma-dia').value),
     personal_id: pid ? Number(pid) : null,
     valor_personal: pid ? (parseFloat(document.getElementById('ac-ma-pval').value) || 0) : 0,
