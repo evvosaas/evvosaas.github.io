@@ -111,6 +111,7 @@ function abrirAlunoAc(id) {
   document.getElementById('ac-ma-plano-ini').value = a?.data_inicio_plano || '';
   document.getElementById('ac-ma-plano-venc').value = a?.data_vencimento_plano || '';
   document.getElementById('ac-ma-plano').value = a?.plano_id || (AC_PLANOS[0]?.id ?? '');
+  document.getElementById('ac-ma-valor-custom').value = a?.valor_personalizado ?? '';
   document.getElementById('ac-ma-dia').value = a?.dia_vencimento || 5;
   document.getElementById('ac-ma-pid').value = a?.personal_id || '';
   document.getElementById('ac-ma-pval').value = a?.valor_personal || 0;
@@ -125,14 +126,17 @@ function abrirAlunoAc(id) {
 function acMaCalc() {
   const planoId = Number(document.getElementById('ac-ma-plano').value);
   const plano = AC_PLANOS.find(p => p.id === planoId);
-  const base = Number(plano?.valor || 0);
+  const customStr = document.getElementById('ac-ma-valor-custom').value;
+  const temCustom = customStr !== '';
+  const base = temCustom ? (parseFloat(customStr) || 0) : Number(plano?.valor || 0);
   const temPers = document.getElementById('ac-ma-pid').value !== '';
   const pv = temPers ? (parseFloat(document.getElementById('ac-ma-pval').value) || 0) : 0;
   document.getElementById('ac-ma-pval').disabled = !temPers;
   if (!temPers) document.getElementById('ac-ma-pval').value = 0;
+  const rotuloBase = temCustom ? `${brl(base)} (valor personalizado, plano ${plano?.nome || ''} ignorado)` : `${brl(base)} academia`;
   document.getElementById('ac-ma-nota').textContent = temPers && pv > 0
-    ? `Fatura do aluno: ${brl(base + pv)} — ${brl(base)} academia + ${brl(pv)} personal (repasse automático).`
-    : `Fatura do aluno: ${brl(base)} (academia) — sem personal vinculado.`;
+    ? `Fatura do aluno: ${brl(base + pv)} — ${rotuloBase} + ${brl(pv)} personal (repasse automático).`
+    : `Fatura do aluno: ${brl(base)}${temCustom ? ' (valor personalizado)' : ' (academia)'} — sem personal vinculado.`;
 }
 
 function acMaCalcVencimentoPlano() {
@@ -229,6 +233,8 @@ async function salvarAlunoAc() {
     data_inicio_plano: document.getElementById('ac-ma-plano-ini').value || null,
     data_vencimento_plano: document.getElementById('ac-ma-plano-venc').value || null,
     plano_id: Number(document.getElementById('ac-ma-plano').value),
+    valor_personalizado: document.getElementById('ac-ma-valor-custom').value !== ''
+      ? parseFloat(document.getElementById('ac-ma-valor-custom').value) : null,
     dia_vencimento: Number(document.getElementById('ac-ma-dia').value),
     personal_id: pid ? Number(pid) : null,
     valor_personal: pid ? (parseFloat(document.getElementById('ac-ma-pval').value) || 0) : 0,
