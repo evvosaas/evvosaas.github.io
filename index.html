@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=29">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -552,7 +553,7 @@
           <span>—</span>
           <input type="date" id="rel-fim" onchange="gerarRelatorioAtual()" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px">
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir / Salvar PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir / Salvar PDF</button> <button class="btn btn-ghost btn-sm" onclick="exportarRelatorioExcel()">📊 Exportar Excel</button>
         
       </div>
       <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-aluno">
@@ -560,7 +561,7 @@
           <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;flex:none">Aluno</span>
           <select id="rel-aluno-sel" onchange="gerarRelatorioExtrato()" style="border:none;background:transparent;font-size:13px;font-weight:600;flex:1;width:100%"></select>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir / Salvar PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir / Salvar PDF</button> <button class="btn btn-ghost btn-sm" onclick="exportarRelatorioExcel()">📊 Exportar Excel</button>
         
       </div>
       <div style="padding:14px 20px;display:none;gap:16px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);background:var(--card2)" id="rel-alunos-colunas">
@@ -573,6 +574,7 @@
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-valor-plano" checked onchange="gerarRelatorioAlunos()">Valor do plano</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-valor-personal" checked onchange="gerarRelatorioAlunos()">Valor do personal</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-cadastro" checked onchange="gerarRelatorioAlunos()">Cadastrado em</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="col-endereco" onchange="gerarRelatorioAlunos()">Endereço completo</label>
       </div>
       <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-nenhum">
         <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600">
@@ -583,11 +585,15 @@
             <option value="inativos">Somente inativos</option>
           </select>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()" style="margin-left:auto">🖨 Imprimir / Salvar PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()" style="margin-left:auto">🖨 Imprimir / Salvar PDF</button> <button class="btn btn-ghost btn-sm" onclick="exportarRelatorioExcel()">📊 Exportar Excel</button>
         
       </div>
       <div style="padding:16px 20px;display:none;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line)" id="rel-filtros-vencplano">
-        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()" style="margin-left:auto">🖨 Imprimir / Salvar PDF</button>
+        <div class="periodo" style="display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600;flex:1;min-width:220px;max-width:340px">
+          <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;flex:none">🔎</span>
+          <input id="rel-vencplano-busca" placeholder="Buscar por nome, CPF ou WhatsApp…" oninput="filtrarRelatorioVencplano()" style="border:none;background:transparent;font-size:13px;font-weight:600;flex:1;width:100%;outline:none">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="imprimirRelatorio()" style="margin-left:auto">🖨 Imprimir / Salvar PDF</button> <button class="btn btn-ghost btn-sm" onclick="exportarRelatorioExcel()">📊 Exportar Excel</button>
       </div>
       <div style="padding:26px 30px;overflow-x:auto">
         <div id="rel-conteudo" style="max-width:720px;margin:0 auto"></div>
@@ -899,6 +905,15 @@
       <div><label>Valor personalizado (R$) <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
         <input id="ac-ma-valor-custom" type="number" min="0" step="0.01" placeholder="Deixe em branco pra usar o valor do plano" oninput="acMaCalc()">
       </div>
+      <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Endereço (para contrato)</div>
+      </div>
+      <div class="full"><label>Rua/Logradouro</label><input id="ac-ma-endereco" placeholder="Ex.: Rua Doutor Camargo"></div>
+      <div><label>Número</label><input id="ac-ma-numero" placeholder="4445"></div>
+      <div><label>Bairro</label><input id="ac-ma-bairro" placeholder="Centro"></div>
+      <div><label>CEP</label><input id="ac-ma-cep" placeholder="87500000"></div>
+      <div><label>Cidade</label><input id="ac-ma-cidade" placeholder="Umuarama"></div>
+      <div><label>Estado (UF)</label><input id="ac-ma-estado" maxlength="2" placeholder="PR" style="text-transform:uppercase"></div>
       <div><label>Dia de vencimento</label>
         <input type="number" id="ac-ma-dia" min="1" max="28">
       </div>
