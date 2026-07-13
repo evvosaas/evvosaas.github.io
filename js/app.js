@@ -43,6 +43,13 @@ function calcVencimentoPlano(iniStr, meses) {
   return `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, '0')}-${String(venc.getDate()).padStart(2, '0')}`;
 }
 
+// Rótulo de plano pra selects: inclui a frequência semanal quando existir,
+// pra diferenciar planos com o mesmo nome (ex: "Pilates Mensal 1x/2x/3x").
+function rotuloPlano(p) {
+  const freq = p.frequencia_semanal ? ` ${p.frequencia_semanal}x/semana` : '';
+  return `${p.nome}${freq} — ${brl(p.valor)}`;
+}
+
 // Normaliza nome próprio pro padrão "Primeira Letra Maiúscula", mantendo
 // conectivos comuns em minúsculo (de, da, do, das, dos, e) — exceto se for
 // a primeira palavra do nome.
