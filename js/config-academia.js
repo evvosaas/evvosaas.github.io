@@ -176,11 +176,17 @@ async function excluirPlanoAc(id) {
   const p = AC_PLANOS_CFG.find(x => x.id === id);
   if (!p) return;
 
-  const { count } = await db.from('alunos')
-    .select('id', { count: 'exact', head: true }).eq('plano_id', id);
+  const [{ count: countAlunos }, { count: countExtras }] = await Promise.all([
+    db.from('alunos').select('id', { count: 'exact', head: true }).eq('plano_id', id),
+    db.from('matriculas_extras').select('id', { count: 'exact', head: true }).eq('plano_id', id),
+  ]);
 
-  if (count > 0) {
-    alert(`O plano "${p.nome}" tem ${count} aluno(s) vinculado(s).\n\nMova os alunos para outro plano antes de excluir — ou apenas INATIVE o plano (✎ → desmarcar "ativo").`);
+  if (countAlunos > 0) {
+    alert(`O plano "${p.nome}" tem ${countAlunos} aluno(s) vinculado(s) como plano principal.\n\nMova os alunos para outro plano antes de excluir — ou apenas INATIVE o plano (✎ → desmarcar "ativo").`);
+    return;
+  }
+  if (countExtras > 0) {
+    alert(`O plano "${p.nome}" está sendo usado em ${countExtras} matrícula(s) extra (modalidade extra de algum aluno).\n\nRemova essas matrículas extras antes de excluir — ou apenas INATIVE o plano (✎ → desmarcar "ativo").`);
     return;
   }
   if (!confirm(`Excluir o plano "${p.nome}"?`)) return;
