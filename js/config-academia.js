@@ -54,7 +54,14 @@ async function carregarConfigAc() {
     </table>` : '<div class="vazio" style="padding:14px 20px">Nenhum plano nessa modalidade ainda.</div>';
 
   const gruposModalidade = AC_MODALIDADES.map((m, i) => {
-    const planosDaModalidade = AC_PLANOS_CFG.filter(p => p.modalidade_id === m.id);
+    const planosDaModalidade = AC_PLANOS_CFG.filter(p => p.modalidade_id === m.id).sort((a, b) => {
+      const comboA = a.nome.toLowerCase().includes('combo') ? 1 : 0;
+      const comboB = b.nome.toLowerCase().includes('combo') ? 1 : 0;
+      if (comboA !== comboB) return comboA - comboB;
+      const perA = a.periodicidade_meses || 1, perB = b.periodicidade_meses || 1;
+      if (perA !== perB) return perA - perB;
+      return (a.frequencia_semanal || 0) - (b.frequencia_semanal || 0);
+    });
     const aberto = acAcordeaoAberto.has(`m${m.id}`);
     return `
     <div class="acordeao-item">
