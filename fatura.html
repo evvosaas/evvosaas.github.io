@@ -228,9 +228,14 @@ async function carregar(){
   document.getElementById('f-comp-lbl').textContent = 'Mensalidade ' + comp;
   document.getElementById('f-valor').textContent = brl(f.valor_total);
 
-  let compHtml = `<div class="row"><span class="lbl">Plano <b>${f.plano}</b></span><span>${brl(f.valor_academia)}</span></div>`;
-  if (Number(f.valor_personal) > 0) {
-    compHtml += `<div class="row"><span class="lbl">Personal trainer <b>${f.personal || ''}</b></span><span>${brl(f.valor_personal)}</span></div>`;
+  let compHtml;
+  if (Array.isArray(f.itens) && f.itens.length) {
+    compHtml = f.itens.map(it => `<div class="row"><span class="lbl">${it.descricao}</span><span>${brl(it.valor)}</span></div>`).join('');
+  } else {
+    compHtml = `<div class="row"><span class="lbl">Plano <b>${f.plano}</b></span><span>${brl(f.valor_academia)}</span></div>`;
+    if (Number(f.valor_personal) > 0) {
+      compHtml += `<div class="row"><span class="lbl">Personal trainer <b>${f.personal || ''}</b></span><span>${brl(f.valor_personal)}</span></div>`;
+    }
   }
   document.getElementById('f-composicao').innerHTML = compHtml;
 
