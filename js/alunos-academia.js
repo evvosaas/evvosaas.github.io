@@ -135,8 +135,6 @@ function abrirAlunoAc(id) {
   const a = id ? AC_ALUNOS.find(x => x.id === id) : null;
   document.getElementById('ac-ma-title').textContent = a ? 'Editar aluno' : 'Novo aluno';
 
-  document.getElementById('ac-ma-plano').innerHTML =
-    AC_PLANOS.map(p => `<option value="${p.id}">${esc(p.nome)} — ${brl(p.valor)}</option>`).join('');
   document.getElementById('ac-ma-pid').innerHTML =
     '<option value="">Sem personal</option>' +
     AC_PERSONAIS.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
@@ -148,7 +146,16 @@ function abrirAlunoAc(id) {
   document.getElementById('ac-ma-nasc').value = a?.data_nascimento || '';
   document.getElementById('ac-ma-plano-ini').value = a?.data_inicio_plano || '';
   document.getElementById('ac-ma-plano-venc').value = a?.data_vencimento_plano || '';
-  document.getElementById('ac-ma-plano').value = a?.plano_id || (AC_PLANOS[0]?.id ?? '');
+
+  document.getElementById('ac-ma-modalidade').innerHTML =
+    '<option value="">— Sem modalidade —</option>' +
+    AC_MODALIDADES_LISTA.map(m => `<option value="${m.id}">${esc(m.nome)}</option>`).join('');
+
+  const planoAtual = a ? AC_PLANOS.find(p => p.id === a.plano_id) : null;
+  document.getElementById('ac-ma-modalidade').value = planoAtual?.modalidade_id || '';
+  acMaFiltrarPlanos(a?.plano_id);
+  if (a) document.getElementById('ac-ma-plano-venc').value = a.data_vencimento_plano || '';
+
   document.getElementById('ac-ma-valor-custom').value = a?.valor_personalizado ?? '';
   document.getElementById('ac-ma-endereco').value = a?.endereco || '';
   document.getElementById('ac-ma-numero').value = a?.numero || '';
@@ -194,6 +201,22 @@ function renderExtrasNoModalAc(alunoId) {
         <button class="icon-btn del" title="Remover modalidade extra" onclick="excluirMatriculaExtraAc(${e.id}, ${alunoId})">🗑</button>
       </div>`;
   }).join('');
+}
+
+function acMaFiltrarPlanos(planoParaManter) {
+  const modId = document.getElementById('ac-ma-modalidade').value;
+  const filtrados = modId
+    ? AC_PLANOS.filter(p => p.modalidade_id === Number(modId))
+    : AC_PLANOS.filter(p => !p.modalidade_id);
+
+  document.getElementById('ac-ma-plano').innerHTML = filtrados.length
+    ? filtrados.map(p => `<option value="${p.id}">${esc(p.nome)} — ${brl(p.valor)}</option>`).join('')
+    : '<option value="">Nenhum plano nessa modalidade</option>';
+
+  const manterId = planoParaManter && filtrados.some(p => p.id === planoParaManter) ? planoParaManter : (filtrados[0]?.id ?? '');
+  document.getElementById('ac-ma-plano').value = manterId;
+  acMaCalc();
+  acMaCalcVencimentoPlano();
 }
 
 function acMaCalc() {
