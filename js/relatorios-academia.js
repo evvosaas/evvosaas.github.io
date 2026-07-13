@@ -483,14 +483,23 @@ async function gerarRelatorioAlunos() {
     valorPersonal: document.getElementById('col-valor-personal')?.checked,
     cadastro: document.getElementById('col-cadastro')?.checked,
     endereco: document.getElementById('col-endereco')?.checked,
+    modalidadesExtras: document.getElementById('col-modalidades-extras')?.checked,
+    totalMensal: document.getElementById('col-total-mensal')?.checked,
   };
 
-  const [{ data: nomeAcademia }, { data: alunos, error }] = await Promise.all([
+  const [{ data: nomeAcademia }, { data: alunos, error }, { data: extras }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('vw_alunos_completo').select('*').order('nome'),
+    db.from('matriculas_extras').select('aluno_id, valor_personalizado, modalidades(nome), planos(valor)').eq('ativo', true),
   ]);
 
   if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
+
+  const extrasPorAluno = {};
+  (extras || []).forEach(e => {
+    if (!extrasPorAluno[e.aluno_id]) extrasPorAluno[e.aluno_id] = [];
+    extrasPorAluno[e.aluno_id].push({ nome: e.modalidades?.nome || '?', valor: Number(e.valor_personalizado ?? e.planos?.valor ?? 0) });
+  });
 
   const lista = alunos || [];
   const ativos = lista.filter(a => a.ativo !== false);
@@ -508,6 +517,8 @@ async function gerarRelatorioAlunos() {
   if (col.valorPersonal) cabecalhos.push('Valor personal');
   if (col.cadastro) cabecalhos.push('Cadastrado em');
   if (col.endereco) cabecalhos.push('Endereço completo');
+  if (col.modalidadesExtras) cabecalhos.push('Modalidades extras');
+  if (col.totalMensal) cabecalhos.push('Total mensal');
 
   const enderecoCompleto = a => {
     const partes = [
@@ -520,6 +531,11 @@ async function gerarRelatorioAlunos() {
   };
 
   const linhaAluno = a => {
+    const extrasDoAluno = extrasPorAluno[a.id] || [];
+    const totalExtras = extrasDoAluno.reduce((s, e) => s + e.valor, 0);
+    const valorBase = Number(a.valor_personalizado ?? a.valor_plano);
+    const totalMensal = valorBase + Number(a.valor_personal || 0) + totalExtras;
+
     const celulas = [esc(a.nome)];
     if (col.cpf) celulas.push(esc(a.cpf || '—'));
     if (col.whatsapp) celulas.push(esc(a.whatsapp || '—'));
@@ -530,6 +546,8 @@ async function gerarRelatorioAlunos() {
     if (col.valorPersonal) celulas.push(Number(a.valor_personal) > 0 ? brl(a.valor_personal) : '—');
     if (col.cadastro) celulas.push(fmt(String(a.created_at).slice(0,10)));
     if (col.endereco) celulas.push(esc(enderecoCompleto(a)));
+    if (col.modalidadesExtras) celulas.push(extrasDoAluno.length ? extrasDoAluno.map(e => `${esc(e.nome)} (${brl(e.valor)})`).join(', ') : '—');
+    if (col.totalMensal) celulas.push(`<b>${brl(totalMensal)}</b>`);
     return `<tr>${celulas.map(c => `<td>${c}</td>`).join('')}</tr>`;
   };
 
