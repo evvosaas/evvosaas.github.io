@@ -11,11 +11,9 @@ let acModalidadeEditId = null;
 let acPlanoEditId = null;
 
 /* ---------------- CARREGAR ---------------- */
-let acAcordeaoAberto = new Set();
-
 async function carregarConfigAc() {
-  const acordeao = document.getElementById('ac-modalidades-acordeao');
-  acordeao.innerHTML = '<div class="carregando" style="padding:20px">Carregando…</div>';
+  const tb = document.getElementById('ac-planos-rows');
+  tb.innerHTML = '<tr><td colspan="6" class="carregando">Carregando…</td></tr>';
 
   const [{ data: planos, error }, { data: cfg }, { data: contagens }, { data: academia }, { data: modalidades }, { data: matriculasExtras }] = await Promise.all([
     db.from('planos').select('*').order('valor'),
@@ -26,64 +24,47 @@ async function carregarConfigAc() {
     db.from('matriculas_extras').select('modalidade_id').eq('ativo', true),
   ]);
 
-  if (error) { acordeao.innerHTML = `<div class="vazio" style="padding:20px">Erro: ${esc(error.message)}</div>`; return; }
+  if (error) { tb.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
   AC_PLANOS_CFG = planos || [];
   AC_MODALIDADES = modalidades || [];
 
+  /* ---------- Planos ---------- */
   const qtdPor = {};
   (contagens || []).forEach(a => { qtdPor[a.plano_id] = (qtdPor[a.plano_id] || 0) + 1; });
+  const rotuloPeriodicidade = m => m === 1 ? 'Mensal' : m === 3 ? 'Trimestral' : m === 6 ? 'Semestral' : m === 12 ? 'Anual' : `${m} meses`;
+  const modalidadeNome = {};
+  AC_MODALIDADES.forEach(m => { modalidadeNome[m.id] = m.nome; });
+
+  tb.innerHTML = AC_PLANOS_CFG.length ? AC_PLANOS_CFG.map(p => `
+    <tr>
+      <td><b>${esc(p.nome)}</b>${p.ativo === false ? ' <span class="badge b-off">Inativo</span>' : ''}</td>
+      <td><b>${brl(p.valor)}</b>/mês</td>
+      <td>${rotuloPeriodicidade(p.periodicidade_meses || 1)}</td>
+      <td>${p.modalidade_id ? esc(modalidadeNome[p.modalidade_id] || '—') : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${qtdPor[p.id] || 0} aluno(s)</td>
+      <td><div class="acts">
+        <button class="icon-btn" title="Editar" onclick="abrirPlanoAc(${p.id})">✎</button>
+        <button class="icon-btn del" title="Excluir" onclick="excluirPlanoAc(${p.id})">🗑</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="vazio">Nenhum plano cadastrado.</td></tr>';
+
+  /* ---------- Modalidades ---------- */
+  const planosPorModalidade = {};
+  AC_PLANOS_CFG.forEach(p => { if (p.modalidade_id) planosPorModalidade[p.modalidade_id] = (planosPorModalidade[p.modalidade_id] || 0) + 1; });
   const alunosExtraPorModalidade = {};
   (matriculasExtras || []).forEach(m => { alunosExtraPorModalidade[m.modalidade_id] = (alunosExtraPorModalidade[m.modalidade_id] || 0) + 1; });
-  const rotuloPeriodicidade = m => m === 1 ? 'Mensal' : m === 3 ? 'Trimestral' : m === 6 ? 'Semestral' : m === 12 ? 'Anual' : `${m} meses`;
 
-  const linhasPlano = lista => lista.length ? `
-    <table style="margin-top:0">
-      <thead><tr><th>Plano</th><th>Valor mensal</th><th>Duração</th><th>Alunos ativos</th><th style="text-align:right">Ações</th></tr></thead>
-      <tbody>${lista.map(p => `
-        <tr>
-          <td><b>${esc(p.nome)}</b>${p.ativo === false ? ' <span class="badge b-off">Inativo</span>' : ''}</td>
-          <td><b>${brl(p.valor)}</b>/mês</td>
-          <td>${rotuloPeriodicidade(p.periodicidade_meses || 1)}</td>
-          <td>${qtdPor[p.id] || 0} aluno(s)</td>
-          <td><div class="acts">
-            <button class="icon-btn" title="Editar" onclick="abrirPlanoAc(${p.id})">✎</button>
-            <button class="icon-btn del" title="Excluir" onclick="excluirPlanoAc(${p.id})">🗑</button>
-          </div></td>
-        </tr>`).join('')}</tbody>
-    </table>` : '<div class="vazio" style="padding:14px 20px">Nenhum plano nessa modalidade ainda.</div>';
-
-  const gruposModalidade = AC_MODALIDADES.map(m => {
-    const planosDaModalidade = AC_PLANOS_CFG.filter(p => p.modalidade_id === m.id);
-    const aberto = acAcordeaoAberto.has(`m${m.id}`);
-    return `
-    <div class="acordeao-item">
-      <div class="acordeao-head" onclick="toggleAcordeaoModalidade('m${m.id}')">
-        <span class="acordeao-seta">${aberto ? '▾' : '▸'}</span>
-        <b>${esc(m.nome)}</b>${m.ativo === false ? ' <span class="badge b-off">Inativa</span>' : ''}
-        <span class="loc" style="margin-left:8px">${planosDaModalidade.length} plano(s) · ${alunosExtraPorModalidade[m.id] || 0} matrícula(s) extra</span>
-        <div class="acts" style="margin-left:auto" onclick="event.stopPropagation()">
-          <button class="icon-btn" title="Editar modalidade" onclick="abrirModalidadeAc(${m.id})">✎</button>
-          <button class="icon-btn del" title="Excluir modalidade" onclick="excluirModalidadeAc(${m.id})">🗑</button>
-        </div>
-      </div>
-      ${aberto ? `<div class="acordeao-body">${linhasPlano(planosDaModalidade)}</div>` : ''}
-    </div>`;
-  }).join('');
-
-  const orfaos = AC_PLANOS_CFG.filter(p => !p.modalidade_id);
-  const abertoOrfaos = acAcordeaoAberto.has('sem-modalidade');
-  const grupoOrfaos = `
-    <div class="acordeao-item">
-      <div class="acordeao-head" onclick="toggleAcordeaoModalidade('sem-modalidade')">
-        <span class="acordeao-seta">${abertoOrfaos ? '▾' : '▸'}</span>
-        <b>Sem modalidade</b>
-        <span class="loc" style="margin-left:8px">${orfaos.length} plano(s)</span>
-      </div>
-      ${abertoOrfaos ? `<div class="acordeao-body">${linhasPlano(orfaos)}</div>` : ''}
-    </div>`;
-
-  acordeao.innerHTML = (AC_MODALIDADES.length ? gruposModalidade : '<div class="vazio" style="padding:20px">Nenhuma modalidade cadastrada ainda — todo plano aparece em "Sem modalidade" até você organizar.</div>')
-    + grupoOrfaos;
+  const tbMod = document.getElementById('ac-modalidades-rows');
+  tbMod.innerHTML = AC_MODALIDADES.length ? AC_MODALIDADES.map(m => `
+    <tr>
+      <td><b>${esc(m.nome)}</b>${m.ativo === false ? ' <span class="badge b-off">Inativa</span>' : ''}</td>
+      <td>${planosPorModalidade[m.id] || 0} plano(s)</td>
+      <td>${alunosExtraPorModalidade[m.id] || 0} aluno(s)</td>
+      <td><div class="acts">
+        <button class="icon-btn" title="Editar" onclick="abrirModalidadeAc(${m.id})">✎</button>
+        <button class="icon-btn del" title="Excluir" onclick="excluirModalidadeAc(${m.id})">🗑</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="4" class="vazio">Nenhuma modalidade cadastrada — cadastre se algum aluno faz mais de uma atividade (ex: academia + pilates).</td></tr>';
 
   /* ---------- Alerta de vencimento de plano ---------- */
   const mapa = {};
@@ -113,12 +94,6 @@ async function salvarDiasVencimentoPlanoAc() {
 }
 
 /* ---------------- PLANOS: NOVO / EDITAR ---------------- */
-function toggleAcordeaoModalidade(chave) {
-  if (acAcordeaoAberto.has(chave)) acAcordeaoAberto.delete(chave);
-  else acAcordeaoAberto.add(chave);
-  carregarConfigAc();
-}
-
 function abrirPlanoAc(id, modalidadePreSelecionada) {
   acPlanoEditId = id;
   const p = id ? AC_PLANOS_CFG.find(x => x.id === id) : null;
@@ -148,9 +123,6 @@ async function salvarPlanoAc() {
     modalidade_id: document.getElementById('ac-mpl-modalidade').value || null,
     ativo: document.getElementById('ac-mpl-ativo').checked,
   };
-
-  if (registro.modalidade_id) acAcordeaoAberto.add(`m${registro.modalidade_id}`);
-  else acAcordeaoAberto.add('sem-modalidade');
 
   let error;
   if (acPlanoEditId) {
