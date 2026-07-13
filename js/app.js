@@ -50,6 +50,20 @@ function rotuloPlano(p) {
   return `${p.nome}${freq} — ${brl(p.valor)}`;
 }
 
+// Ordena uma lista de planos: normais primeiro, "Combo" depois, cada grupo
+// por duração crescente e depois por frequência semanal crescente — mesmo
+// critério usado no acordeão de Modalidades em Configurações.
+function ordenarPlanos(lista) {
+  return [...lista].sort((a, b) => {
+    const comboA = a.nome.toLowerCase().includes('combo') ? 1 : 0;
+    const comboB = b.nome.toLowerCase().includes('combo') ? 1 : 0;
+    if (comboA !== comboB) return comboA - comboB;
+    const perA = a.periodicidade_meses || 1, perB = b.periodicidade_meses || 1;
+    if (perA !== perB) return perA - perB;
+    return (a.frequencia_semanal || 0) - (b.frequencia_semanal || 0);
+  });
+}
+
 // Normaliza nome próprio pro padrão "Primeira Letra Maiúscula", mantendo
 // conectivos comuns em minúsculo (de, da, do, das, dos, e) — exceto se for
 // a primeira palavra do nome.
