@@ -6,6 +6,8 @@
    configura a própria conta.
    ============================================================ */
 let AC_PLANOS_CFG = [];
+let AC_MODALIDADES = [];
+let acModalidadeEditId = null;
 let acPlanoEditId = null;
 
 /* ---------------- CARREGAR ---------------- */
@@ -13,11 +15,13 @@ async function carregarConfigAc() {
   const tb = document.getElementById('ac-planos-rows');
   tb.innerHTML = '<tr><td colspan="5" class="carregando">Carregando…</td></tr>';
 
-  const [{ data: planos, error }, { data: cfg }, { data: contagens }, { data: academia }] = await Promise.all([
+  const [{ data: planos, error }, { data: cfg }, { data: contagens }, { data: academia }, { data: modalidades }, { data: matriculasExtras }] = await Promise.all([
     db.from('planos').select('*').order('valor'),
     db.from('config').select('*'),
     db.from('alunos').select('plano_id').eq('ativo', true),
     db.from('academias').select('*').eq('id', MEU_ACADEMIA_ID).single(),
+    db.from('modalidades').select('*').order('nome'),
+    db.from('matriculas_extras').select('modalidade_id').eq('ativo', true),
   ]);
 
   if (error) { tb.innerHTML = `<tr><td colspan="5" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
@@ -40,6 +44,25 @@ async function carregarConfigAc() {
         <button class="icon-btn del" title="Excluir" onclick="excluirPlanoAc(${p.id})">🗑</button>
       </div></td>
     </tr>`).join('') : '<tr><td colspan="5" class="vazio">Nenhum plano cadastrado.</td></tr>';
+
+  /* ---------- Modalidades ---------- */
+  AC_MODALIDADES = modalidades || [];
+  const planosPorModalidade = {};
+  AC_PLANOS_CFG.forEach(p => { if (p.modalidade_id) planosPorModalidade[p.modalidade_id] = (planosPorModalidade[p.modalidade_id] || 0) + 1; });
+  const alunosExtraPorModalidade = {};
+  (matriculasExtras || []).forEach(m => { alunosExtraPorModalidade[m.modalidade_id] = (alunosExtraPorModalidade[m.modalidade_id] || 0) + 1; });
+
+  const tbMod = document.getElementById('ac-modalidades-rows');
+  tbMod.innerHTML = AC_MODALIDADES.length ? AC_MODALIDADES.map(m => `
+    <tr>
+      <td><b>${esc(m.nome)}</b>${m.ativo === false ? ' <span class="badge b-off">Inativa</span>' : ''}</td>
+      <td>${planosPorModalidade[m.id] || 0} plano(s)</td>
+      <td>${alunosExtraPorModalidade[m.id] || 0} aluno(s)</td>
+      <td><div class="acts">
+        <button class="icon-btn" title="Editar" onclick="abrirModalidadeAc(${m.id})">✎</button>
+        <button class="icon-btn del" title="Excluir" onclick="excluirModalidadeAc(${m.id})">🗑</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="4" class="vazio">Nenhuma modalidade cadastrada — cadastre se algum aluno faz mais de uma atividade (ex: academia + pilates).</td></tr>';
 
   /* ---------- Alerta de vencimento de plano ---------- */
   const mapa = {};
@@ -235,4 +258,56 @@ function editarTokenWebhookAc() {
   db.from('academias').select('*').eq('id', MEU_ACADEMIA_ID).single().then(({ data }) => {
     renderIntegracaoAc({ ...data, asaas_webhook_token: null });
   });
+}
+
+/* ---------------- MODALIDADES ---------------- */
+function abrirModalidadeAc(id) {
+  acModalidadeEditId = id;
+  const m = id ? AC_MODALIDADES.find(x => x.id === id) : null;
+  document.getElementById('ac-mmd-title').textContent = m ? 'Editar modalidade' : 'Nova modalidade';
+  document.getElementById('ac-mmd-nome').value = m?.nome || '';
+  document.getElementById('ac-mmd-ativo').checked = m ? m.ativo !== false : true;
+  openModal('m-modalidade-ac');
+}
+
+async function salvarModalidadeAc() {
+  const nome = normalizarNomeProprio(document.getElementById('ac-mmd-nome').value.trim());
+  if (!nome) { toast('Informe o nome da modalidade.'); return; }
+
+  const registro = { nome, ativo: document.getElementById('ac-mmd-ativo').checked };
+  let error;
+  if (acModalidadeEditId) {
+    ({ error } = await db.from('modalidades').update(registro).eq('id', acModalidadeEditId));
+  } else {
+    registro.academia_id = MEU_ACADEMIA_ID;
+    ({ error } = await db.from('modalidades').insert(registro));
+  }
+  if (error) { toast('Erro ao salvar: ' + error.message); return; }
+  closeModal('m-modalidade-ac');
+  toast(acModalidadeEditId ? 'Modalidade atualizada ✓' : 'Modalidade cadastrada ✓');
+  carregarConfigAc();
+}
+
+async function excluirModalidadeAc(id) {
+  const m = AC_MODALIDADES.find(x => x.id === id);
+  if (!m) return;
+
+  const [{ count: temPlanos }, { count: temMatriculas }] = await Promise.all([
+    db.from('planos').select('id', { count: 'exact', head: true }).eq('modalidade_id', id),
+    db.from('matriculas_extras').select('id', { count: 'exact', head: true }).eq('modalidade_id', id),
+  ]);
+
+  if ((temPlanos || 0) > 0 || (temMatriculas || 0) > 0) {
+    if (confirm(`"${m.nome}" já tem ${temPlanos || 0} plano(s) e ${temMatriculas || 0} matrícula(s) vinculados.\n\nPor segurança, o sistema INATIVA em vez de excluir (nada é perdido).\n\nOK = Inativar | Cancelar = não fazer nada`)) {
+      const { error } = await db.from('modalidades').update({ ativo: false }).eq('id', id);
+      toast(error ? 'Erro: ' + error.message : 'Modalidade inativada ✓');
+      carregarConfigAc();
+    }
+    return;
+  }
+
+  if (!confirm(`Excluir a modalidade "${m.nome}"?`)) return;
+  const { error } = await db.from('modalidades').delete().eq('id', id);
+  toast(error ? 'Erro: ' + error.message : 'Modalidade excluída ✓');
+  carregarConfigAc();
 }
