@@ -88,7 +88,12 @@ function renderAlunosAc() {
 
   tb.innerHTML = lista.map((a, i) => {
     const valorBase = a.valor_personalizado ?? a.valor_plano;
-    const total = Number(valorBase) + Number(a.valor_personal || 0);
+    const extrasDoAluno = AC_EXTRAS_POR_ALUNO[a.id] || [];
+    const totalExtras = extrasDoAluno.reduce((s, e) => {
+      const planoExtra = AC_PLANOS.find(p => p.id === e.plano_id);
+      return s + Number(e.valor_personalizado ?? planoExtra?.valor ?? 0);
+    }, 0);
+    const total = Number(valorBase) + Number(a.valor_personal || 0) + totalExtras;
     const tagPers = a.personal
       ? `<span class="tag-p">🏋 ${esc(a.personal)}</span>`
       : '<span style="color:var(--muted);font-size:13px">—</span>';
@@ -118,7 +123,7 @@ function renderAlunosAc() {
         <div><div class="nm">${esc(a.nome)}</div><div class="loc">${esc(a.whatsapp || a.cpf || '')}</div>${badgesModalidade ? `<div>${badgesModalidade}</div>` : ''}</div></div></td>
       <td>${esc(a.plano)}<div class="loc">venc. dia ${a.dia_vencimento}</div></td>
       <td>${tagPers}</td>
-      <td><b>${brl(total)}</b>${a.valor_personalizado != null ? '<div class="loc">valor personalizado</div>' : ''}${a.valor_personal > 0 ? `<div class="loc">${brl(valorBase)} + ${brl(a.valor_personal)} personal</div>` : ''}</td>
+      <td><b>${brl(total)}</b>${a.valor_personalizado != null ? '<div class="loc">valor personalizado</div>' : ''}${a.valor_personal > 0 ? `<div class="loc">${brl(valorBase)} + ${brl(a.valor_personal)} personal</div>` : ''}${totalExtras > 0 ? `<div class="loc">+ ${brl(totalExtras)} modalidade(s) extra</div>` : ''}</td>
       <td>${situacao}</td>
       <td><div class="acts">
         <button class="icon-btn" title="Gerar fatura" onclick="gerarFaturaAc(${a.id})">⚡</button>
