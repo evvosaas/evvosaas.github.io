@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.37<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.38<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.37<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.38<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -504,20 +504,9 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Geração automática de faturas</h2></div>
+      <div class="card-head"><h2>Alertas de vencimento de plano</h2></div>
       <div style="padding:18px 20px;display:flex;flex-direction:column;gap:16px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer">
-          <input type="checkbox" id="ac-cfg-pausa" onchange="salvarPausaAc()" style="width:17px;height:17px">
-          <b>⏸ Pausar geração automática de faturas</b>
-        </label>
-        <div id="ac-cfg-pausa-lbl" style="font-size:13px;font-weight:600;color:var(--muted)">—</div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px">
-          Gerar a fatura de cada aluno
-          <input type="number" id="ac-cfg-dias" min="1" max="30" style="width:70px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px">
-          dia(s) antes do vencimento
-          <button class="btn btn-ghost btn-sm" onclick="salvarDiasAc()">Salvar</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;margin-top:14px">
           Avisar sobre vencimento do PLANO do aluno com
           <input type="number" id="ac-cfg-dias-plano" min="1" max="90" style="width:70px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px">
           dia(s) de antecedência
