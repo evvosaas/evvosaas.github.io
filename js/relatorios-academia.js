@@ -820,6 +820,27 @@ function filtrarRelatorioVencplano() {
 function imprimirRelatorio() {
   const conteudo = document.getElementById('rel-conteudo').innerHTML;
   document.getElementById('print-area').innerHTML = conteudo;
+
+  // Detecta se algum quadro do relatório tem muitas colunas — só nesse caso
+  // a impressão vira paisagem com fonte menor, pra não afetar os relatórios
+  // que já ficam perfeitos em retrato (Financeiro, Participação, etc.)
+  const maiorNumColunas = Math.max(0, ...Array.from(document.querySelectorAll('#print-area table thead tr'))
+    .map(tr => tr.children.length));
+
+  const antigo = document.getElementById('print-orientation-style');
+  if (antigo) antigo.remove();
+
+  if (maiorNumColunas > 8) {
+    const styleTag = document.createElement('style');
+    styleTag.id = 'print-orientation-style';
+    styleTag.textContent = `@media print {
+      @page { size: landscape; margin: 10mm; }
+      .rel-table { font-size: 10px !important; }
+      .rel-table td, .rel-table th { padding: 4px 5px !important; }
+    }`;
+    document.head.appendChild(styleTag);
+  }
+
   window.print();
 }
 
