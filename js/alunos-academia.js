@@ -9,6 +9,8 @@
 let AC_ALUNOS = [];
 let AC_PLANOS = [];
 let AC_PERSONAIS = [];
+let AC_MODALIDADES_LISTA = [];
+let AC_EXTRAS_POR_ALUNO = {};
 let acAluFiltro = 'todos';
 let acAluEditId = null;
 
@@ -17,22 +19,35 @@ async function carregarAlunosAc() {
   const tb = document.getElementById('ac-alunos-rows');
   tb.innerHTML = '<tr><td colspan="6" class="carregando">Carregando…</td></tr>';
 
-  const [{ data: planos }, { data: personais }, { data: alunos, error }] = await Promise.all([
+  const [{ data: planos }, { data: personais }, { data: alunos, error }, { data: modalidades }, { data: extras }] = await Promise.all([
     db.from('planos').select('*').eq('ativo', true).order('valor'),
     db.from('personais').select('*').eq('ativo', true).order('nome'),
     db.from('vw_alunos_completo').select('*').order('nome'),
+    db.from('modalidades').select('*').eq('ativo', true).order('nome'),
+    db.from('matriculas_extras').select('*, modalidades(nome)').eq('ativo', true),
   ]);
 
   if (error) { tb.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
   AC_PLANOS = planos || [];
   AC_PERSONAIS = personais || [];
   AC_ALUNOS = alunos || [];
+  AC_MODALIDADES_LISTA = modalidades || [];
+  AC_EXTRAS_POR_ALUNO = {};
+  (extras || []).forEach(e => {
+    if (!AC_EXTRAS_POR_ALUNO[e.aluno_id]) AC_EXTRAS_POR_ALUNO[e.aluno_id] = [];
+    AC_EXTRAS_POR_ALUNO[e.aluno_id].push(e);
+  });
 
   if (!AC_PLANOS.length) {
     tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum plano cadastrado ainda — fale com o suporte Evvo para configurar os planos da sua academia.</td></tr>';
     return;
   }
   renderAlunosAc();
+}
+
+function corModalidade(modalidadeId) {
+  const idx = AC_MODALIDADES_LISTA.findIndex(m => m.id === modalidadeId);
+  return corDe(idx >= 0 ? idx : 0);
 }
 
 /* ---------------- RENDER ---------------- */
@@ -82,10 +97,25 @@ function renderAlunosAc() {
       : a.forma_cobranca === 'cartao_recorrente'
         ? '<span class="badge b-info">Cartão recorrente</span>'
         : '<span class="badge b-ok">Fatura</span>';
+
+    const planoPrincipal = AC_PLANOS.find(p => p.id === a.plano_id);
+    const modalidadesDoAluno = [];
+    if (planoPrincipal?.modalidade_id) {
+      const mod = AC_MODALIDADES_LISTA.find(m => m.id === planoPrincipal.modalidade_id);
+      if (mod) modalidadesDoAluno.push(mod);
+    }
+    (AC_EXTRAS_POR_ALUNO[a.id] || []).forEach(e => {
+      modalidadesDoAluno.push({ id: e.modalidade_id, nome: e.modalidades?.nome || '?' });
+    });
+    const badgesModalidade = modalidadesDoAluno.map(m => {
+      const cor = corModalidade(m.id);
+      return `<span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:10px;font-weight:700;margin:3px 4px 0 0;background:${cor}1f;color:${cor}">${esc(m.nome)}</span>`;
+    }).join('');
+
     return `
     <tr>
       <td><div class="acad-cell"><div class="av" style="background:${corDe(i)}">${ini(a.nome)}</div>
-        <div><div class="nm">${esc(a.nome)}</div><div class="loc">${esc(a.whatsapp || a.cpf || '')}</div></div></div></td>
+        <div><div class="nm">${esc(a.nome)}</div><div class="loc">${esc(a.whatsapp || a.cpf || '')}</div>${badgesModalidade ? `<div>${badgesModalidade}</div>` : ''}</div></div></td>
       <td>${esc(a.plano)}<div class="loc">venc. dia ${a.dia_vencimento}</div></td>
       <td>${tagPers}</td>
       <td><b>${brl(total)}</b>${a.valor_personalizado != null ? '<div class="loc">valor personalizado</div>' : ''}${a.valor_personal > 0 ? `<div class="loc">${brl(valorBase)} + ${brl(a.valor_personal)} personal</div>` : ''}</td>
@@ -134,7 +164,36 @@ function abrirAlunoAc(id) {
   document.getElementById('ac-ma-ativo').checked = a ? a.ativo !== false : true;
 
   acMaCalc();
+  renderExtrasNoModalAc(id);
   openModal('m-aluno-ac');
+}
+
+function renderExtrasNoModalAc(alunoId) {
+  const wrap = document.getElementById('ac-ma-extras-lista');
+  const btn = document.getElementById('ac-ma-extra-btn');
+  if (!alunoId) {
+    wrap.innerHTML = '<div class="loc">Salve o aluno primeiro pra poder adicionar modalidades extras.</div>';
+    return;
+  }
+  const extras = AC_EXTRAS_POR_ALUNO[alunoId] || [];
+  if (!extras.length) {
+    wrap.innerHTML = '<div class="loc">Nenhuma modalidade extra ainda.</div>';
+    return;
+  }
+  wrap.innerHTML = extras.map(e => {
+    const cor = corModalidade(e.modalidade_id);
+    const plano = AC_PLANOS.find(p => p.id === e.plano_id);
+    const valor = e.valor_personalizado ?? plano?.valor;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)">
+        <span style="width:8px;height:8px;border-radius:50%;background:${cor};flex:none"></span>
+        <div style="flex:1">
+          <b>${esc(e.modalidades?.nome || '?')}</b> · ${esc(plano?.nome || '—')}
+          <div class="loc">vence ${fmt(e.data_vencimento)}${valor != null ? ' · ' + brl(valor) : ''}</div>
+        </div>
+        <button class="icon-btn del" title="Remover modalidade extra" onclick="excluirMatriculaExtraAc(${e.id}, ${alunoId})">🗑</button>
+      </div>`;
+  }).join('');
 }
 
 function acMaCalc() {
@@ -390,4 +449,73 @@ function mostrarFaturaAc(aluno, m) {
       <div class="linha-copiavel" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:11px 13px;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>toast('PIX copiado ✓'))">${esc(m.pix_copia_cola)}</div>` : ''}
   `;
   openModal('m-fatura-ac');
+}
+
+/* ---------------- MATRÍCULA EXTRA (modalidade adicional) ---------------- */
+function abrirMatriculaExtraAc() {
+  if (!acAluEditId) { toast('Salve o aluno primeiro pra poder adicionar uma modalidade extra.'); return; }
+  if (!AC_MODALIDADES_LISTA.length) { toast('Cadastre uma modalidade em Configurações antes.'); return; }
+
+  document.getElementById('ac-mex-modalidade').innerHTML = AC_MODALIDADES_LISTA
+    .map(m => `<option value="${m.id}">${esc(m.nome)}</option>`).join('');
+  acMexPopularPlanos();
+  document.getElementById('ac-mex-inicio').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('ac-mex-valor-custom').value = '';
+  acMexCalc();
+  openModal('m-matricula-extra-ac');
+}
+
+function acMexPopularPlanos() {
+  const modId = Number(document.getElementById('ac-mex-modalidade').value);
+  const planosFiltrados = AC_PLANOS.filter(p => p.modalidade_id === modId);
+  document.getElementById('ac-mex-plano').innerHTML = planosFiltrados.length
+    ? planosFiltrados.map(p => `<option value="${p.id}">${esc(p.nome)} — ${brl(p.valor)}</option>`).join('')
+    : '<option value="">Nenhum plano cadastrado nessa modalidade</option>';
+}
+
+function acMexCalc() {
+  const ini = document.getElementById('ac-mex-inicio').value;
+  const planoId = Number(document.getElementById('ac-mex-plano').value);
+  const plano = AC_PLANOS.find(p => p.id === planoId);
+  const hint = document.getElementById('ac-mex-hint');
+  if (!ini || !plano) { hint.textContent = 'Escolha a modalidade, o plano e a data de início.'; return; }
+  const meses = plano.periodicidade_meses || 1;
+  const venc = calcVencimentoPlano(ini, meses);
+  document.getElementById('ac-mex-vencimento').value = venc;
+  hint.textContent = `Início em ${fmt(ini)} + ${meses} mês(es) do plano "${plano.nome}" = vencimento em ${fmt(venc)}. Entra somado na próxima fatura mensal do aluno.`;
+}
+
+async function salvarMatriculaExtraAc() {
+  const modalidade_id = Number(document.getElementById('ac-mex-modalidade').value);
+  const plano_id = Number(document.getElementById('ac-mex-plano').value);
+  const data_inicio = document.getElementById('ac-mex-inicio').value;
+  const data_vencimento = document.getElementById('ac-mex-vencimento').value;
+  const valorStr = document.getElementById('ac-mex-valor-custom').value;
+
+  if (!modalidade_id) { toast('Selecione a modalidade.'); return; }
+  if (!plano_id) { toast('Selecione um plano válido dessa modalidade.'); return; }
+  if (!data_inicio) { toast('Informe a data de início.'); return; }
+
+  const { error } = await db.from('matriculas_extras').insert({
+    academia_id: MEU_ACADEMIA_ID,
+    aluno_id: acAluEditId,
+    modalidade_id, plano_id,
+    valor_personalizado: valorStr !== '' ? parseFloat(valorStr) : null,
+    data_inicio, data_vencimento,
+  });
+  if (error) { toast('Erro ao adicionar: ' + error.message); return; }
+  closeModal('m-matricula-extra-ac');
+  toast('Modalidade extra adicionada ✓');
+
+  await carregarAlunosAc();
+  renderExtrasNoModalAc(acAluEditId);
+}
+
+async function excluirMatriculaExtraAc(id, alunoId) {
+  if (!confirm('Remover essa modalidade extra do aluno?\n\nO histórico de faturas passadas não é afetado — só deixa de entrar nas próximas.')) return;
+  const { error } = await db.from('matriculas_extras').update({ ativo: false }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message); return; }
+  toast('Modalidade extra removida ✓');
+  await carregarAlunosAc();
+  renderExtrasNoModalAc(alunoId);
 }
