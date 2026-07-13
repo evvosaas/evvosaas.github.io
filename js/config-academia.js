@@ -52,12 +52,12 @@ async function carregarConfigAc() {
         </tr>`).join('')}</tbody>
     </table>` : '<div class="vazio" style="padding:14px 20px">Nenhum plano nessa modalidade ainda.</div>';
 
-  const gruposModalidade = AC_MODALIDADES.map(m => {
+  const gruposModalidade = AC_MODALIDADES.map((m, i) => {
     const planosDaModalidade = AC_PLANOS_CFG.filter(p => p.modalidade_id === m.id);
     const aberto = acAcordeaoAberto.has(`m${m.id}`);
     return `
     <div class="acordeao-item">
-      <div class="acordeao-head" onclick="toggleAcordeaoModalidade('m${m.id}')">
+      <div class="acordeao-head" style="--acordeao-cor:${corDe(i)}" onclick="toggleAcordeaoModalidade('m${m.id}')">
         <span class="acordeao-seta">${aberto ? '▾' : '▸'}</span>
         <b>${esc(m.nome)}</b>${m.ativo === false ? ' <span class="badge b-off">Inativa</span>' : ''}
         <span class="loc" style="margin-left:8px">${planosDaModalidade.length} plano(s) · ${alunosExtraPorModalidade[m.id] || 0} matrícula(s) extra</span>
@@ -76,7 +76,7 @@ async function carregarConfigAc() {
     const abertoOrfaos = acAcordeaoAberto.has('sem-modalidade');
     grupoOrfaos = `
       <div class="acordeao-item">
-        <div class="acordeao-head" onclick="toggleAcordeaoModalidade('sem-modalidade')">
+        <div class="acordeao-head" style="--acordeao-cor:#b7bac2" onclick="toggleAcordeaoModalidade('sem-modalidade')">
           <span class="acordeao-seta">${abertoOrfaos ? '▾' : '▸'}</span>
           <b>Sem modalidade</b>
           <span class="loc" style="margin-left:8px">${orfaos.length} plano(s)</span>
