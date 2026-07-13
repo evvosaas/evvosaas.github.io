@@ -223,7 +223,7 @@ function acMaFiltrarPlanos(planoParaManter) {
     : AC_PLANOS.filter(p => !p.modalidade_id);
 
   document.getElementById('ac-ma-plano').innerHTML = filtrados.length
-    ? filtrados.map(p => `<option value="${p.id}">${esc(p.nome)} — ${brl(p.valor)}</option>`).join('')
+    ? filtrados.map(p => `<option value="${p.id}">${esc(rotuloPlano(p))}</option>`).join('')
     : '<option value="">Nenhum plano nessa modalidade</option>';
 
   const manterId = planoParaManter && filtrados.some(p => p.id === planoParaManter) ? planoParaManter : (filtrados[0]?.id ?? '');
@@ -278,7 +278,7 @@ async function abrirRenovarPlanoAc(alunoId) {
   acRvpPlanos = planos || [];
   document.getElementById('ac-rvp-nome').value = aluno.nome;
   document.getElementById('ac-rvp-plano').innerHTML = acRvpPlanos
-    .map(p => `<option value="${p.id}" ${p.id === aluno.plano_id ? 'selected' : ''}>${esc(p.nome)} — ${brl(p.valor)}</option>`).join('');
+    .map(p => `<option value="${p.id}" ${p.id === aluno.plano_id ? 'selected' : ''}>${esc(rotuloPlano(p))}</option>`).join('');
   document.getElementById('ac-rvp-ini').value = new Date().toISOString().slice(0, 10);
   acRenovarCalc();
   openModal('m-renovar-plano-ac');
@@ -505,7 +505,7 @@ function acMexPopularPlanos() {
   const modId = Number(document.getElementById('ac-mex-modalidade').value);
   const planosFiltrados = AC_PLANOS.filter(p => p.modalidade_id === modId);
   document.getElementById('ac-mex-plano').innerHTML = planosFiltrados.length
-    ? planosFiltrados.map(p => `<option value="${p.id}">${esc(p.nome)} — ${brl(p.valor)}</option>`).join('')
+    ? planosFiltrados.map(p => `<option value="${p.id}">${esc(rotuloPlano(p))}</option>`).join('')
     : '<option value="">Nenhum plano cadastrado nessa modalidade</option>';
 }
 
