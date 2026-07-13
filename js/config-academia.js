@@ -13,7 +13,7 @@ let acPlanoEditId = null;
 /* ---------------- CARREGAR ---------------- */
 async function carregarConfigAc() {
   const tb = document.getElementById('ac-planos-rows');
-  tb.innerHTML = '<tr><td colspan="5" class="carregando">Carregando…</td></tr>';
+  tb.innerHTML = '<tr><td colspan="6" class="carregando">Carregando…</td></tr>';
 
   const [{ data: planos, error }, { data: cfg }, { data: contagens }, { data: academia }, { data: modalidades }, { data: matriculasExtras }] = await Promise.all([
     db.from('planos').select('*').order('valor'),
@@ -32,18 +32,21 @@ async function carregarConfigAc() {
   (contagens || []).forEach(a => { qtdPor[a.plano_id] = (qtdPor[a.plano_id] || 0) + 1; });
 
   const rotuloPeriodicidade = m => m === 1 ? 'Mensal' : m === 3 ? 'Trimestral' : m === 6 ? 'Semestral' : m === 12 ? 'Anual' : `${m} meses`;
+  const modalidadeNome = {};
+  (modalidades || []).forEach(m => { modalidadeNome[m.id] = m.nome; });
 
   tb.innerHTML = AC_PLANOS_CFG.length ? AC_PLANOS_CFG.map(p => `
     <tr>
       <td><b>${esc(p.nome)}</b>${p.ativo === false ? ' <span class="badge b-off">Inativo</span>' : ''}</td>
       <td><b>${brl(p.valor)}</b>/mês</td>
       <td>${rotuloPeriodicidade(p.periodicidade_meses || 1)}</td>
+      <td>${p.modalidade_id ? esc(modalidadeNome[p.modalidade_id] || '—') : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${qtdPor[p.id] || 0} aluno(s)</td>
       <td><div class="acts">
         <button class="icon-btn" title="Editar" onclick="abrirPlanoAc(${p.id})">✎</button>
         <button class="icon-btn del" title="Excluir" onclick="excluirPlanoAc(${p.id})">🗑</button>
       </div></td>
-    </tr>`).join('') : '<tr><td colspan="5" class="vazio">Nenhum plano cadastrado.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="6" class="vazio">Nenhum plano cadastrado.</td></tr>';
 
   /* ---------- Modalidades ---------- */
   AC_MODALIDADES = modalidades || [];
@@ -100,6 +103,11 @@ function abrirPlanoAc(id) {
   document.getElementById('ac-mpl-valor').value = p ? Number(p.valor).toFixed(2) : '';
   document.getElementById('ac-mpl-periodicidade').value = p?.periodicidade_meses || 1;
   document.getElementById('ac-mpl-ativo').checked = p ? p.ativo !== false : true;
+
+  const modalidadesAtivas = AC_MODALIDADES.filter(m => m.ativo !== false);
+  document.getElementById('ac-mpl-modalidade').innerHTML = '<option value="">— nenhuma —</option>' +
+    modalidadesAtivas.map(m => `<option value="${m.id}" ${p?.modalidade_id === m.id ? 'selected' : ''}>${esc(m.nome)}</option>`).join('');
+
   openModal('m-plano-ac');
 }
 
@@ -112,6 +120,7 @@ async function salvarPlanoAc() {
   const registro = {
     nome, valor,
     periodicidade_meses: parseInt(document.getElementById('ac-mpl-periodicidade').value) || 1,
+    modalidade_id: document.getElementById('ac-mpl-modalidade').value || null,
     ativo: document.getElementById('ac-mpl-ativo').checked,
   };
 
