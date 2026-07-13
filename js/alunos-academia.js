@@ -58,6 +58,13 @@ function renderAlunosAc() {
       : acAluFiltro === 'inativos' ? a.ativo === false : a.ativo !== false)
     .filter(a => acAluFiltro === 'inativos' ? true : a.ativo !== false);
 
+  const ordem = document.getElementById('ac-alu-ordem')?.value || 'nome';
+  if (ordem === 'dia_vencimento') {
+    lista.sort((a, b) => (Number(a.dia_vencimento) || 99) - (Number(b.dia_vencimento) || 99) || (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+  } else {
+    lista.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+  }
+
   document.getElementById('ac-alunos-sub').textContent =
     `${AC_ALUNOS.filter(a => a.ativo !== false).length} ativos · ${AC_ALUNOS.filter(a => a.ativo === false).length} inativos`;
 
@@ -220,7 +227,7 @@ async function salvarRenovacaoPlanoAc() {
 }
 
 async function salvarAlunoAc() {
-  const nome = document.getElementById('ac-ma-nome').value.trim();
+  const nome = normalizarNomeProprio(document.getElementById('ac-ma-nome').value.trim());
   if (!nome) { toast('Informe o nome do aluno.'); return; }
 
   const cpf = document.getElementById('ac-ma-cpf').value.trim();
