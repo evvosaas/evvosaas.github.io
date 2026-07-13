@@ -43,6 +43,19 @@ function calcVencimentoPlano(iniStr, meses) {
   return `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, '0')}-${String(venc.getDate()).padStart(2, '0')}`;
 }
 
+// Normaliza nome próprio pro padrão "Primeira Letra Maiúscula", mantendo
+// conectivos comuns em minúsculo (de, da, do, das, dos, e) — exceto se for
+// a primeira palavra do nome.
+const CONECTIVOS_NOME = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+function normalizarNomeProprio(nome) {
+  if (!nome) return nome;
+  return nome.trim().split(/\s+/).map((palavra, i) => {
+    const lower = palavra.toLocaleLowerCase('pt-BR');
+    if (i > 0 && CONECTIVOS_NOME.has(lower)) return lower;
+    return lower.charAt(0).toLocaleUpperCase('pt-BR') + lower.slice(1);
+  }).join(' ');
+}
+
 let tt;
 function toast(msg) {
   document.getElementById('toast-msg').textContent = msg;
