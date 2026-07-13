@@ -295,6 +295,10 @@
         <div class="fchip" onclick="filtraAlunoAc('sem',this)">Sem personal</div>
         <div class="fchip" onclick="filtraAlunoAc('inativos',this)">Inativos</div>
         <div class="search"><input id="ac-alu-q" placeholder="Buscar por nome, CPF ou WhatsApp…" oninput="renderAlunosAc()"></div>
+        <select id="ac-alu-ordem" onchange="renderAlunosAc()" style="border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;background:#fff">
+          <option value="nome">Ordenar: Nome (A-Z)</option>
+          <option value="dia_vencimento">Ordenar: Dia de vencimento (menor → maior)</option>
+        </select>
       </div>
       <table>
         <thead><tr><th>Aluno</th><th>Plano</th><th>Personal</th><th>Mensalidade total</th><th>Cobrança</th><th style="text-align:right">Ações</th></tr></thead>
