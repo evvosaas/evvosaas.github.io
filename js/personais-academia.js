@@ -171,7 +171,7 @@ function abrirPersonalAc(id) {
 }
 
 async function salvarPersonalAc() {
-  const nome = document.getElementById('ac-mp-nome').value.trim();
+  const nome = normalizarNomeProprio(document.getElementById('ac-mp-nome').value.trim());
   if (!nome) { toast('Informe o nome do personal.'); return; }
   const registro = {
     nome,
