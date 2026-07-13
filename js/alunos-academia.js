@@ -218,9 +218,9 @@ function renderExtrasNoModalAc(alunoId) {
 
 function acMaFiltrarPlanos(planoParaManter) {
   const modId = document.getElementById('ac-ma-modalidade').value;
-  const filtrados = modId
+  const filtrados = ordenarPlanos(modId
     ? AC_PLANOS.filter(p => p.modalidade_id === Number(modId))
-    : AC_PLANOS.filter(p => !p.modalidade_id);
+    : AC_PLANOS.filter(p => !p.modalidade_id));
 
   document.getElementById('ac-ma-plano').innerHTML = filtrados.length
     ? filtrados.map(p => `<option value="${p.id}">${esc(rotuloPlano(p))}</option>`).join('')
@@ -275,7 +275,7 @@ async function abrirRenovarPlanoAc(alunoId) {
   if (error || !aluno) { toast('Não achei esse aluno.'); return; }
 
   acRvpAlunoId = alunoId;
-  acRvpPlanos = planos || [];
+  acRvpPlanos = ordenarPlanos(planos || []);
   document.getElementById('ac-rvp-nome').value = aluno.nome;
   document.getElementById('ac-rvp-plano').innerHTML = acRvpPlanos
     .map(p => `<option value="${p.id}" ${p.id === aluno.plano_id ? 'selected' : ''}>${esc(rotuloPlano(p))}</option>`).join('');
@@ -503,7 +503,7 @@ function abrirMatriculaExtraAc() {
 
 function acMexPopularPlanos() {
   const modId = Number(document.getElementById('ac-mex-modalidade').value);
-  const planosFiltrados = AC_PLANOS.filter(p => p.modalidade_id === modId);
+  const planosFiltrados = ordenarPlanos(AC_PLANOS.filter(p => p.modalidade_id === modId));
   document.getElementById('ac-mex-plano').innerHTML = planosFiltrados.length
     ? planosFiltrados.map(p => `<option value="${p.id}">${esc(rotuloPlano(p))}</option>`).join('')
     : '<option value="">Nenhum plano cadastrado nessa modalidade</option>';
