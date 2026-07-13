@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.46<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.47<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.46<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.47<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -740,6 +740,26 @@
   </div>
 </div>
 
+<!-- ================= MODAL MATRÍCULA EXTRA (modalidade) ================= -->
+<div class="overlay" id="m-matricula-extra-ac">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Adicionar modalidade extra</div><button class="close" onclick="closeModal('m-matricula-extra-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label>Modalidade *</label><select id="ac-mex-modalidade" onchange="acMexPopularPlanos();acMexCalc()"></select></div>
+      <div class="full"><label>Plano *</label><select id="ac-mex-plano" onchange="acMexCalc()"></select></div>
+      <div><label>Início do contrato</label><input type="date" id="ac-mex-inicio" onchange="acMexCalc()"></div>
+      <div><label>Vencimento</label><input type="date" id="ac-mex-vencimento"></div>
+      <div class="full"><label>Valor personalizado (R$) <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+        <input id="ac-mex-valor-custom" type="number" min="0" step="0.01" placeholder="Deixe em branco pra usar o valor do plano">
+      </div>
+    </div>
+    <div class="form-note" id="ac-mex-hint">—</div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="salvarMatriculaExtraAc()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL RENOVAÇÃO RÁPIDA DE PLANO ================= -->
 <div class="overlay" id="m-renovar-plano-ac">
   <div class="modal">
@@ -943,6 +963,13 @@
         <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-ma-cartao" style="width:17px;height:17px;flex:none">Permitir cartão na fatura</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="ac-ma-ativo" checked style="width:17px;height:17px;flex:none">Aluno ativo</label>
       </div>
+    </div>
+    <div id="ac-ma-extras-wrap" style="border-top:1px solid var(--line);margin-top:6px;padding:14px 24px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Modalidades extras</div>
+        <button class="btn btn-ghost btn-sm" id="ac-ma-extra-btn" onclick="abrirMatriculaExtraAc()">+ Adicionar modalidade</button>
+      </div>
+      <div id="ac-ma-extras-lista"><div class="loc">Salve o aluno primeiro pra poder adicionar modalidades extras.</div></div>
     </div>
     <div class="form-note" id="ac-ma-nota">—</div>
     <div class="modal-foot">
