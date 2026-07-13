@@ -123,7 +123,15 @@ function renderAlunosAc() {
         <div><div class="nm">${esc(a.nome)}</div><div class="loc">${esc(a.whatsapp || a.cpf || '')}</div>${badgesModalidade ? `<div>${badgesModalidade}</div>` : ''}</div></div></td>
       <td>${esc(a.plano)}<div class="loc">venc. dia ${a.dia_vencimento}</div></td>
       <td>${tagPers}</td>
-      <td><b>${brl(total)}</b>${a.valor_personalizado != null ? '<div class="loc">valor personalizado</div>' : ''}${a.valor_personal > 0 ? `<div class="loc">${brl(valorBase)} + ${brl(a.valor_personal)} personal</div>` : ''}${totalExtras > 0 ? `<div class="loc">+ ${brl(totalExtras)} modalidade(s) extra</div>` : ''}</td>
+      <td><b>${brl(total)}</b>${a.valor_personalizado != null ? '<div class="loc">valor personalizado</div>' : ''}${
+        (() => {
+          const partes = [];
+          if (a.valor_personal > 0 || totalExtras > 0) partes.push(brl(valorBase));
+          if (a.valor_personal > 0) partes.push(`${brl(a.valor_personal)} personal`);
+          if (totalExtras > 0) partes.push(`${brl(totalExtras)} modalidade(s) extra`);
+          return partes.length > 1 ? `<div class="loc">${partes.join(' + ')}</div>` : '';
+        })()
+      }</td>
       <td>${situacao}</td>
       <td><div class="acts">
         <button class="icon-btn" title="Gerar fatura" onclick="gerarFaturaAc(${a.id})">⚡</button>
