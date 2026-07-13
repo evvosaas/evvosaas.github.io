@@ -38,12 +38,13 @@ async function carregarConfigAc() {
 
   const linhasPlano = lista => lista.length ? `
     <table style="margin-top:0">
-      <thead><tr><th>Plano</th><th>Valor mensal</th><th>Duração</th><th>Alunos ativos</th><th style="text-align:right">Ações</th></tr></thead>
+      <thead><tr><th>Plano</th><th>Valor mensal</th><th>Duração</th><th>Frequência</th><th>Alunos ativos</th><th style="text-align:right">Ações</th></tr></thead>
       <tbody>${lista.map(p => `
         <tr>
           <td><b>${esc(p.nome)}</b>${p.ativo === false ? ' <span class="badge b-off">Inativo</span>' : ''}</td>
           <td><b>${brl(p.valor)}</b>/mês</td>
           <td>${rotuloPeriodicidade(p.periodicidade_meses || 1)}</td>
+          <td>${p.frequencia_semanal ? p.frequencia_semanal + 'x/semana' : '—'}</td>
           <td>${qtdPor[p.id] || 0} aluno(s)</td>
           <td><div class="acts">
             <button class="icon-btn" title="Editar" onclick="abrirPlanoAc(${p.id})">✎</button>
@@ -129,6 +130,7 @@ function abrirPlanoAc(id, modalidadePreSelecionada) {
   document.getElementById('ac-mpl-nome').value = p?.nome || '';
   document.getElementById('ac-mpl-valor').value = p ? Number(p.valor).toFixed(2) : '';
   document.getElementById('ac-mpl-periodicidade').value = p?.periodicidade_meses || 1;
+  document.getElementById('ac-mpl-frequencia').value = p?.frequencia_semanal || '';
   document.getElementById('ac-mpl-ativo').checked = p ? p.ativo !== false : true;
 
   const modalidadesAtivas = AC_MODALIDADES.filter(m => m.ativo !== false);
@@ -149,6 +151,7 @@ async function salvarPlanoAc() {
     nome, valor,
     periodicidade_meses: parseInt(document.getElementById('ac-mpl-periodicidade').value) || 1,
     modalidade_id: document.getElementById('ac-mpl-modalidade').value || null,
+    frequencia_semanal: document.getElementById('ac-mpl-frequencia').value ? parseInt(document.getElementById('ac-mpl-frequencia').value) : null,
     ativo: document.getElementById('ac-mpl-ativo').checked,
   };
 
