@@ -198,8 +198,8 @@ tbody tr:hover{background:#fafafb}
 .rel-kpi .v{font-family:'Archivo';font-weight:800;font-size:16px;margin-top:4px}
 .rel-section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:22px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .rel-table{width:100%;border-collapse:collapse;font-size:12.5px}
-.rel-table th{text-align:left;padding:7px 8px;font-size:10.5px;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--ink)}
-.rel-table td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.rel-table th{text-align:left;padding:7px 8px;font-size:10.5px;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--ink);white-space:nowrap}
+.rel-table td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 .rel-table tr:last-child td{border-bottom:none}
 .rel-total-row{font-weight:800;border-top:2px solid var(--ink)}
 .rel-resultado{margin-top:18px;padding:14px 16px;border-top:2px solid var(--ink);display:flex;justify-content:space-between;align-items:center;font-weight:800}
@@ -212,6 +212,7 @@ tbody tr:hover{background:#fafafb}
   body * { visibility: hidden !important; }
   #print-area { display: block !important; visibility: visible !important; position: absolute; top: 0; left: 0; width: 100%; padding: 0; }
   #print-area * { visibility: visible !important; }
+  .rel-table td, .rel-table th { white-space: normal !important; }
   @page { margin: 12mm; }
 }
 #print-area { display: none; }
