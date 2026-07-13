@@ -104,7 +104,7 @@ function abrirParceiroAc(id) {
 }
 
 async function salvarParceiroAc() {
-  const nome = document.getElementById('ac-mpe-nome').value.trim();
+  const nome = normalizarNomeProprio(document.getElementById('ac-mpe-nome').value.trim());
   if (!nome) { toast('Informe o nome do parceiro.'); return; }
   const registro = {
     nome,
