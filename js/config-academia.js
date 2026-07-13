@@ -41,46 +41,13 @@ async function carregarConfigAc() {
       </div></td>
     </tr>`).join('') : '<tr><td colspan="5" class="vazio">Nenhum plano cadastrado.</td></tr>';
 
-  /* ---------- Controles da geração ---------- */
+  /* ---------- Alerta de vencimento de plano ---------- */
   const mapa = {};
   (cfg || []).forEach(c => { mapa[c.chave] = c.valor; });
-  document.getElementById('ac-cfg-pausa').checked = mapa['geracao_faturas_pausada'] === 'true';
-  document.getElementById('ac-cfg-dias').value = mapa['dias_antes_vencimento_gerar'] || '10';
   document.getElementById('ac-cfg-dias-plano').value = mapa['alerta_vencimento_plano_dias'] || '30';
-  const lbl = document.getElementById('ac-cfg-pausa-lbl');
-  if (mapa['geracao_faturas_pausada'] === 'true') {
-    lbl.textContent = 'Status atual: PAUSADA — o cron diário NÃO emite novas faturas.';
-    lbl.style.color = 'var(--late)';
-  } else {
-    lbl.textContent = 'Status atual: ATIVA — faturas são emitidas automaticamente todos os dias, respeitando a antecedência abaixo.';
-    lbl.style.color = 'var(--ok)';
-  }
 
   /* ---------- Integração Asaas ---------- */
   renderIntegracaoAc(academia);
-}
-
-/* ---------------- CONTROLES DA GERAÇÃO ---------------- */
-async function salvarPausaAc() {
-  const pausado = document.getElementById('ac-cfg-pausa').checked;
-  if (pausado && !confirm('PAUSAR a geração automática de faturas?\n\nEnquanto pausada, nenhum aluno recebe cobrança nova.')) {
-    document.getElementById('ac-cfg-pausa').checked = false;
-    return;
-  }
-  const { error } = await db.from('config')
-    .update({ valor: String(pausado), updated_at: new Date().toISOString() })
-    .eq('academia_id', MEU_ACADEMIA_ID).eq('chave', 'geracao_faturas_pausada');
-  toast(error ? 'Erro: ' + error.message : (pausado ? 'Geração pausada ⏸' : 'Geração reativada ▶'));
-  carregarConfigAc();
-}
-
-async function salvarDiasAc() {
-  const dias = parseInt(document.getElementById('ac-cfg-dias').value) || 10;
-  if (dias < 1 || dias > 30) { toast('Use um valor entre 1 e 30 dias.'); return; }
-  const { error } = await db.from('config')
-    .update({ valor: String(dias), updated_at: new Date().toISOString() })
-    .eq('academia_id', MEU_ACADEMIA_ID).eq('chave', 'dias_antes_vencimento_gerar');
-  toast(error ? 'Erro: ' + error.message : `Faturas passam a ser geradas ${dias} dia(s) antes do vencimento ✓`);
 }
 
 async function salvarDiasVencimentoPlanoAc() {
