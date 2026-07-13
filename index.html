@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.42<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.43<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.42<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.43<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -496,7 +496,12 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Modalidades e Planos</h2><button class="btn btn-primary btn-sm" onclick="abrirModalidadeAc(null)">+ Nova modalidade</button></div>
+      <div class="card-head"><h2>Modalidades e Planos</h2>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost btn-sm" onclick="abrirPlanoAc(null)">+ Novo plano</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalidadeAc(null)">+ Nova modalidade</button>
+        </div>
+      </div>
       <div class="sub" style="padding:2px 20px 14px;color:var(--muted);font-size:13.5px">Ex.: Musculação, Pilates, Jiu-Jitsu — clique numa modalidade pra ver/editar os planos dela.</div>
       <div id="ac-modalidades-acordeao"><div class="carregando" style="padding:20px">Carregando…</div></div>
     </div>
