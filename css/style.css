@@ -48,7 +48,7 @@ nav{padding:8px 12px;flex:1}
 .side-foot{padding:14px 20px;font-size:10.5px;color:#6a6a76;border-top:1px solid rgba(255,255,255,.08);line-height:1.6}
 .side-foot b{color:var(--brand)}
 
-main{margin-left:230px;padding:28px 34px 60px;max-width:1200px}
+main{margin-left:230px;padding:28px 34px 60px}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
 .topbar h1{font-size:26px;font-weight:800}
 .topbar .sub{color:var(--muted);font-size:13.5px;margin-top:3px}
