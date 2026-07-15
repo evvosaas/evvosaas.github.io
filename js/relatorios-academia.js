@@ -392,17 +392,37 @@ async function gerarRelatorioInadimplentes() {
 }
 
 /* ---------------- EXTRATO DE ALUNO ---------------- */
+let AC_REL_ALUNOS_TODOS = [];
+
 async function popularSelectAlunos() {
   const sel = document.getElementById('rel-aluno-sel');
   sel.innerHTML = '<option>Carregando…</option>';
-  const { data: alunos } = await db.from('alunos').select('id, nome, ativo').order('nome');
+  const { data: alunos } = await db.from('alunos').select('id, nome, cpf, ativo').order('nome');
+  document.getElementById('rel-aluno-busca').value = '';
   if (!alunos || !alunos.length) {
+    AC_REL_ALUNOS_TODOS = [];
     sel.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
     document.getElementById('rel-conteudo').innerHTML = '<div class="vazio">Nenhum aluno cadastrado ainda.</div>';
     return;
   }
+  AC_REL_ALUNOS_TODOS = alunos;
   sel.innerHTML = alunos.map(a => `<option value="${a.id}">${esc(a.nome)}${a.ativo === false ? ' (inativo)' : ''}</option>`).join('');
   gerarRelatorioExtrato();
+}
+
+function filtrarSelectAlunos() {
+  const termo = document.getElementById('rel-aluno-busca').value.trim().toLowerCase();
+  const sel = document.getElementById('rel-aluno-sel');
+  const filtrados = termo
+    ? AC_REL_ALUNOS_TODOS.filter(a =>
+        a.nome.toLowerCase().includes(termo) || (a.cpf || '').includes(termo.replace(/\D/g, '')))
+    : AC_REL_ALUNOS_TODOS;
+
+  sel.innerHTML = filtrados.length
+    ? filtrados.map(a => `<option value="${a.id}">${esc(a.nome)}${a.ativo === false ? ' (inativo)' : ''}</option>`).join('')
+    : '<option value="">Nenhum aluno encontrado</option>';
+
+  if (filtrados.length) gerarRelatorioExtrato();
 }
 
 async function gerarRelatorioExtrato() {
