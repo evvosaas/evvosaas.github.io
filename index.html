@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.64<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.65<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.64<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.65<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -944,7 +944,7 @@
     <div class="modal-head"><div class="titulo" id="ac-ma-title">Novo aluno</div><button class="close" onclick="closeModal('m-aluno-ac')">✕</button></div>
     <div class="form-grid">
       <div class="full"><label>Nome completo *</label><input id="ac-ma-nome" placeholder="Ex.: Maria Souza"></div>
-      <div><label>CPF</label><input id="ac-ma-cpf" placeholder="000.000.000-00"></div>
+      <div><label>CPF/CNPJ</label><input id="ac-ma-cpf" placeholder="000.000.000-00 ou CNPJ"></div>
       <div><label>WhatsApp (com DDD)</label><input id="ac-ma-zap" placeholder="44999990000"></div>
       <div class="full"><label>E-mail (opcional)</label><input id="ac-ma-email" placeholder="aluno@email.com"></div>
       <div><label>Data de nascimento</label><input type="date" id="ac-ma-nasc"></div>
@@ -962,7 +962,9 @@
       <div class="full"><label>Rua/Logradouro</label><input id="ac-ma-endereco" placeholder="Ex.: Rua Doutor Camargo"></div>
       <div><label>Número</label><input id="ac-ma-numero" placeholder="4445"></div>
       <div><label>Bairro</label><input id="ac-ma-bairro" placeholder="Centro"></div>
-      <div><label>CEP</label><input id="ac-ma-cep" placeholder="87500000"></div>
+      <div><label>CEP</label><input id="ac-ma-cep" placeholder="87500000" oninput="acMaBuscarCep()">
+        <div class="hint" id="ac-ma-cep-status" style="margin-top:4px"></div>
+      </div>
       <div><label>Cidade</label><input id="ac-ma-cidade" placeholder="Umuarama"></div>
       <div><label>Estado (UF)</label><input id="ac-ma-estado" maxlength="2" placeholder="PR" style="text-transform:uppercase"></div>
       <div><label>Dia de vencimento</label>
