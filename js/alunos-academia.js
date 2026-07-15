@@ -148,12 +148,12 @@ function abrirAlunoAc(id) {
   const a = id ? AC_ALUNOS.find(x => x.id === id) : null;
   document.getElementById('ac-ma-title').textContent = a ? 'Editar aluno' : 'Novo aluno';
 
-  const clienteDesde = document.getElementById('ac-ma-cliente-desde');
+  const clienteDesdeWrap = document.getElementById('ac-ma-cliente-desde-wrap');
   if (a?.created_at) {
-    clienteDesde.style.display = 'block';
-    clienteDesde.innerHTML = `📅 Cliente desde <b>${fmt(String(a.created_at).slice(0, 10))}</b> — essa data não muda quando o plano é renovado.`;
+    clienteDesdeWrap.style.display = 'block';
+    document.getElementById('ac-ma-cliente-desde').value = String(a.created_at).slice(0, 10);
   } else {
-    clienteDesde.style.display = 'none';
+    clienteDesdeWrap.style.display = 'none';
   }
 
   document.getElementById('ac-ma-pid').innerHTML =
@@ -372,6 +372,8 @@ async function salvarAlunoAc() {
   let error;
   if (acAluEditId) {
     delete registro.academia_id; // não reenvia em update (imutável)
+    const novaDataCadastro = document.getElementById('ac-ma-cliente-desde').value;
+    if (novaDataCadastro) registro.created_at = novaDataCadastro;
     ({ error } = await db.from('alunos').update(registro).eq('id', acAluEditId));
   } else {
     ({ error } = await db.from('alunos').insert(registro));
