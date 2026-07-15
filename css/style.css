@@ -158,7 +158,7 @@ tbody tr:hover{background:#fafafb}
 .toast.show{transform:none;opacity:1}
 .toast .dot{width:10px;height:10px;border-radius:50%;background:var(--brand-a);flex:none}
 
-@media(max-width:900px){
+@media(max-width:900px) and (orientation:portrait){
   aside{width:64px}.logo-name,.logo-tag,.nav-item span,.side-foot,.btn-sair span{display:none}
   main{margin-left:64px;padding:20px 14px}.kpis{grid-template-columns:1fr 1fr}
   .det-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}
