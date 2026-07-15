@@ -326,9 +326,9 @@ async function salvarAlunoAc() {
   if (!nome) { toast('Informe o nome do aluno.'); return; }
 
   const cpf = document.getElementById('ac-ma-cpf').value.trim();
-  if (cpf && !validarCPFAc(cpf)) { toast('CPF inválido — confira os números digitados.'); return; }
+  if (cpf && !validarCpfCnpjAc(cpf)) { toast('CPF/CNPJ inválido — confira os números digitados.'); return; }
   if (!cpf) {
-    if (!confirm('Aluno sem CPF: não será possível gerar cobranças para ele até cadastrar o CPF (exigência do emissor).\n\nSalvar mesmo assim?')) return;
+    if (!confirm('Aluno sem CPF/CNPJ: não será possível gerar cobranças para ele até cadastrar (exigência do emissor).\n\nSalvar mesmo assim?')) return;
   }
 
   const pid = document.getElementById('ac-ma-pid').value;
@@ -371,7 +371,7 @@ async function salvarAlunoAc() {
 
   btn.disabled = false;
   if (error) {
-    toast(error.code === '23505' ? 'Já existe um aluno com esse CPF na sua academia.' : 'Erro ao salvar: ' + error.message);
+    toast(error.code === '23505' ? 'Já existe um aluno com esse CPF/CNPJ na sua academia.' : 'Erro ao salvar: ' + error.message);
     return;
   }
   closeModal('m-aluno-ac');
@@ -403,9 +403,37 @@ async function excluirAlunoAc(id) {
   carregarAlunosAc();
 }
 
-/* ---------------- VALIDAÇÃO DE CPF ---------------- */
+/* ---------------- BUSCA DE ENDEREÇO POR CEP (ViaCEP) ---------------- */
+let acMaCepTimeout = null;
+function acMaBuscarCep() {
+  const input = document.getElementById('ac-ma-cep');
+  const status = document.getElementById('ac-ma-cep-status');
+  const cep = input.value.replace(/\D/g, '');
+
+  clearTimeout(acMaCepTimeout);
+  if (cep.length !== 8) { status.textContent = ''; return; }
+
+  status.textContent = 'Buscando endereço…';
+  acMaCepTimeout = setTimeout(async () => {
+    try {
+      const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const dado = await resp.json();
+      if (dado.erro) { status.textContent = 'CEP não encontrado — preencha manualmente.'; return; }
+
+      document.getElementById('ac-ma-endereco').value = dado.logradouro || '';
+      document.getElementById('ac-ma-bairro').value = dado.bairro || '';
+      document.getElementById('ac-ma-cidade').value = dado.localidade || '';
+      document.getElementById('ac-ma-estado').value = dado.uf || '';
+      status.textContent = 'Endereço preenchido ✓ — confira o número.';
+      document.getElementById('ac-ma-numero').focus();
+    } catch {
+      status.textContent = 'Não consegui buscar agora — preencha manualmente.';
+    }
+  }, 500);
+}
+
+/* ---------------- VALIDAÇÃO DE CPF/CNPJ ---------------- */
 function validarCPFAc(cpf) {
-  cpf = String(cpf).replace(/\D/g, '');
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
   let s = 0;
   for (let i = 0; i < 9; i++) s += Number(cpf[i]) * (10 - i);
@@ -417,12 +445,35 @@ function validarCPFAc(cpf) {
   return d2 === Number(cpf[10]);
 }
 
+function validarCNPJAc(cnpj) {
+  cnpj = String(cnpj).replace(/\D/g, '');
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+  const calcDigito = (base, pesos) => {
+    let s = 0;
+    for (let i = 0; i < pesos.length; i++) s += Number(base[i]) * pesos[i];
+    const r = s % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  const d1 = calcDigito(cnpj, [5,4,3,2,9,8,7,6,5,4,3,2]);
+  if (d1 !== Number(cnpj[12])) return false;
+  const d2 = calcDigito(cnpj, [6,5,4,3,2,9,8,7,6,5,4,3,2]);
+  return d2 === Number(cnpj[13]);
+}
+
+// Aceita CPF (11 dígitos) ou CNPJ (14 dígitos), validando o formato certo conforme o tamanho.
+function validarCpfCnpjAc(valor) {
+  const digitos = String(valor).replace(/\D/g, '');
+  if (digitos.length === 11) return validarCPFAc(digitos);
+  if (digitos.length === 14) return validarCNPJAc(digitos);
+  return false;
+}
+
 /* ---------------- FATURA IMEDIATA (Edge Function) ---------------- */
 async function gerarFaturaAc(id) {
   const a = AC_ALUNOS.find(x => x.id === id);
   if (!a) return;
   if (a.ativo === false) { toast('Aluno inativo — reative antes de gerar fatura.'); return; }
-  if (!a.cpf) { toast('Cadastre o CPF do aluno antes de gerar a fatura (exigência do banco emissor).'); return; }
+  if (!a.cpf) { toast('Cadastre o CPF/CNPJ do aluno antes de gerar a fatura (exigência do banco emissor).'); return; }
 
   // Se já existe fatura em aberto (pendente/atrasada), REABRE o modal dela
   const { data: aberta } = await db.from('mensalidades')
