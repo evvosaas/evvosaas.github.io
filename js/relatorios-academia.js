@@ -525,21 +525,55 @@ async function gerarRelatorioAlunos() {
     totalMensal: document.getElementById('col-total-mensal')?.checked,
   };
 
-  const [{ data: nomeAcademia }, { data: alunos, error }, { data: extras }] = await Promise.all([
+  const [{ data: nomeAcademia }, { data: alunos, error }, { data: extras }, { data: planosTodos }, { data: modalidadesTodas }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('vw_alunos_completo').select('*').order('nome'),
-    db.from('matriculas_extras').select('aluno_id, valor_personalizado, modalidades(nome), planos(valor)').eq('ativo', true),
+    db.from('matriculas_extras').select('aluno_id, modalidade_id, valor_personalizado, modalidades(nome), planos(valor)').eq('ativo', true),
+    db.from('planos').select('id, modalidade_id'),
+    db.from('modalidades').select('id, nome').order('nome'),
   ]);
 
   if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
 
+  // Popula o select de modalidade uma única vez (mantendo a escolha atual)
+  const selMod = document.getElementById('rel-alunos-modalidade');
+  if (selMod.dataset.populado !== 'true') {
+    selMod.innerHTML = '<option value="">Todas</option>' +
+      (modalidadesTodas || []).map(m => `<option value="${m.id}">${esc(m.nome)}</option>`).join('');
+    selMod.dataset.populado = 'true';
+  }
+  const modalidadeFiltro = selMod.value ? Number(selMod.value) : null;
+
+  const modalidadePorPlano = {};
+  (planosTodos || []).forEach(p => { modalidadePorPlano[p.id] = p.modalidade_id; });
+
   const extrasPorAluno = {};
   (extras || []).forEach(e => {
     if (!extrasPorAluno[e.aluno_id]) extrasPorAluno[e.aluno_id] = [];
-    extrasPorAluno[e.aluno_id].push({ nome: e.modalidades?.nome || '?', valor: Number(e.valor_personalizado ?? e.planos?.valor ?? 0) });
+    extrasPorAluno[e.aluno_id].push({ nome: e.modalidades?.nome || '?', valor: Number(e.valor_personalizado ?? e.planos?.valor ?? 0), modalidade_id: e.modalidade_id });
   });
 
-  const lista = alunos || [];
+  // Modalidades de cada aluno = a do plano principal + as das matrículas extras ativas
+  const modalidadesDoAluno = a => {
+    const ids = new Set();
+    const modPrincipal = modalidadePorPlano[a.plano_id];
+    if (modPrincipal) ids.add(modPrincipal);
+    (extrasPorAluno[a.id] || []).forEach(e => { if (e.modalidade_id) ids.add(e.modalidade_id); });
+    return ids;
+  };
+
+  const todosAlunos = alunos || [];
+  const ativosGeral = todosAlunos.filter(a => a.ativo !== false);
+
+  // Resumo: quantos alunos ativos em cada modalidade (pra visão rápida no topo)
+  const resumoModalidades = (modalidadesTodas || []).map(m => ({
+    nome: m.nome,
+    qtd: ativosGeral.filter(a => modalidadesDoAluno(a).has(m.id)).length,
+  }));
+
+  const lista = modalidadeFiltro
+    ? todosAlunos.filter(a => modalidadesDoAluno(a).has(modalidadeFiltro))
+    : todosAlunos;
   const ativos = lista.filter(a => a.ativo !== false);
   const inativos = lista.filter(a => a.ativo === false);
   const comPersonal = ativos.filter(a => a.personal_id).length;
@@ -619,10 +653,15 @@ async function gerarRelatorioAlunos() {
       <div class="rel-kpi"><div class="l">Total já cadastrado</div><div class="v">${lista.length}</div></div>
     </div>
 
+    ${resumoModalidades.length ? `
+    <div class="rel-kpis" style="margin-top:-6px">
+      ${resumoModalidades.map(r => `<div class="rel-kpi"><div class="l">${esc(r.nome)} (ativos)</div><div class="v">${r.qtd}</div></div>`).join('')}
+    </div>` : ''}
+
     ${situacao !== 'inativos' ? secaoAtivos : ''}
     ${situacao !== 'ativos' ? secaoInativos : ''}
 
-    <div class="rel-nota">Inclui todos os alunos já cadastrados na academia, independentemente de período.</div>
+    <div class="rel-nota">Inclui todos os alunos já cadastrados na academia, independentemente de período.${modalidadeFiltro ? ' Lista filtrada por modalidade.' : ''}</div>
   `;
 }
 
