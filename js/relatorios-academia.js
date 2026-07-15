@@ -59,12 +59,17 @@ async function gerarRelatorioFinanceiro() {
 
   const [{ data: nomeAcademia }, { data: faturas, error }, { data: despesas }, { data: avulsas }, { data: outrasRec }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
-    db.from('vw_financeiro').select('*').gte('vencimento', pIni).lte('vencimento', pFim).order('vencimento'),
+    // Regime de caixa: fatura PAGA entra pela data real do pagamento (pago_em);
+    // fatura ainda pendente/atrasada continua aparecendo pelo vencimento, senão
+    // sumiria do relatório por nunca ter sido paga ainda.
+    db.from('vw_financeiro').select('*')
+      .or(`and(status.eq.pago,pago_em.gte.${pIni}T00:00:00,pago_em.lte.${pFim}T23:59:59),and(status.neq.pago,vencimento.gte.${pIni},vencimento.lte.${pFim})`)
+      .order('vencimento'),
     db.from('despesas').select('*').gte('vencimento', pIni).lte('vencimento', pFim),
     db.from('cobrancas_avulsas').select('valor_total, valor_parceiro, descricao, alunos(nome), parceiros_externos(nome)').eq('status', 'pago')
-      .gte('data_cobranca', pIni).lte('data_cobranca', pFim),
+      .gte('pago_em', pIni + 'T00:00:00').lte('pago_em', pFim + 'T23:59:59'),
     db.from('outras_receitas').select('valor, descricao, categoria').eq('status', 'pago')
-      .gte('data_lancamento', pIni).lte('data_lancamento', pFim),
+      .gte('pago_em', pIni + 'T00:00:00').lte('pago_em', pFim + 'T23:59:59'),
   ]);
 
   if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
@@ -483,7 +488,7 @@ async function gerarRelatorioExtrato() {
       <tbody>
         <tr><td>CPF</td><td style="text-align:right">${esc(aluno.cpf || '—')}</td></tr>
         <tr><td>WhatsApp</td><td style="text-align:right">${esc(aluno.whatsapp || '—')}</td></tr>
-        <tr><td>Plano</td><td style="text-align:right">${esc(aluno.plano)} (${brl(aluno.valor_plano)})</td></tr>
+        <tr><td>Plano</td><td style="text-align:right">${esc(aluno.plano)} (${brl(aluno.valor_personalizado ?? aluno.valor_plano)}${aluno.valor_personalizado != null ? ' — personalizado' : ''})</td></tr>
         ${aluno.personal ? `<tr><td>Personal</td><td style="text-align:right">${esc(aluno.personal)} (${brl(aluno.valor_personal)})</td></tr>` : ''}
         <tr><td>Cadastrado em</td><td style="text-align:right">${fmt(String(aluno.created_at).slice(0,10))}</td></tr>
       </tbody>
@@ -619,7 +624,7 @@ async function gerarRelatorioAlunos() {
     if (col.email) celulas.push(esc(a.email || '—'));
     if (col.plano) celulas.push(esc(a.plano || '—'));
     if (col.personal) celulas.push(a.personal ? esc(a.personal) : '—');
-    if (col.valorPlano) celulas.push(brl(a.valor_plano));
+    if (col.valorPlano) celulas.push(brl(valorBase) + (a.valor_personalizado != null ? ' (personalizado)' : ''));
     if (col.valorPersonal) celulas.push(Number(a.valor_personal) > 0 ? brl(a.valor_personal) : '—');
     if (col.cadastro) celulas.push(fmt(String(a.created_at).slice(0,10)));
     if (col.endereco) celulas.push(esc(enderecoCompleto(a)));
