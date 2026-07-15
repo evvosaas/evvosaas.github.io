@@ -538,11 +538,12 @@ async function gerarRelatorioAlunos() {
   // Popula o select de modalidade uma única vez (mantendo a escolha atual)
   const selMod = document.getElementById('rel-alunos-modalidade');
   if (selMod.dataset.populado !== 'true') {
-    selMod.innerHTML = '<option value="">Todas</option>' +
+    selMod.innerHTML = '<option value="">Todas</option><option value="combo">🔗 Mais de uma modalidade (combo)</option>' +
       (modalidadesTodas || []).map(m => `<option value="${m.id}">${esc(m.nome)}</option>`).join('');
     selMod.dataset.populado = 'true';
   }
-  const modalidadeFiltro = selMod.value ? Number(selMod.value) : null;
+  const modalidadeFiltro = selMod.value && selMod.value !== 'combo' ? Number(selMod.value) : null;
+  const filtroCombo = selMod.value === 'combo';
 
   const modalidadePorPlano = {};
   (planosTodos || []).forEach(p => { modalidadePorPlano[p.id] = p.modalidade_id; });
@@ -570,10 +571,14 @@ async function gerarRelatorioAlunos() {
     nome: m.nome,
     qtd: ativosGeral.filter(a => modalidadesDoAluno(a).has(m.id)).length,
   }));
+  const qtdCombo = ativosGeral.filter(a => modalidadesDoAluno(a).size >= 2).length;
+  if (qtdCombo > 0) resumoModalidades.push({ nome: '🔗 2 ou mais modalidades', qtd: qtdCombo });
 
-  const lista = modalidadeFiltro
-    ? todosAlunos.filter(a => modalidadesDoAluno(a).has(modalidadeFiltro))
-    : todosAlunos;
+  const lista = filtroCombo
+    ? todosAlunos.filter(a => modalidadesDoAluno(a).size >= 2)
+    : modalidadeFiltro
+      ? todosAlunos.filter(a => modalidadesDoAluno(a).has(modalidadeFiltro))
+      : todosAlunos;
   const ativos = lista.filter(a => a.ativo !== false);
   const inativos = lista.filter(a => a.ativo === false);
   const comPersonal = ativos.filter(a => a.personal_id).length;
@@ -661,7 +666,7 @@ async function gerarRelatorioAlunos() {
     ${situacao !== 'inativos' ? secaoAtivos : ''}
     ${situacao !== 'ativos' ? secaoInativos : ''}
 
-    <div class="rel-nota">Inclui todos os alunos já cadastrados na academia, independentemente de período.${modalidadeFiltro ? ' Lista filtrada por modalidade.' : ''}</div>
+    <div class="rel-nota">Inclui todos os alunos já cadastrados na academia, independentemente de período.${modalidadeFiltro || filtroCombo ? ' Lista filtrada por modalidade.' : ''}</div>
   `;
 }
 
