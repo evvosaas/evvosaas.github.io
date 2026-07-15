@@ -31,8 +31,7 @@ async function carregarFinanceiroAc() {
 
   const { data, error } = await db.from('vw_financeiro')
     .select('*')
-    .gte('vencimento', pIni)
-    .lte('vencimento', pFim)
+    .or(`and(status.eq.pago,pago_em.gte.${pIni}T00:00:00,pago_em.lte.${pFim}T23:59:59),and(status.neq.pago,vencimento.gte.${pIni},vencimento.lte.${pFim})`)
     .order('vencimento', { ascending: true });
 
   if (error) { tb.innerHTML = `<tr><td colspan="8" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
