@@ -148,6 +148,14 @@ function abrirAlunoAc(id) {
   const a = id ? AC_ALUNOS.find(x => x.id === id) : null;
   document.getElementById('ac-ma-title').textContent = a ? 'Editar aluno' : 'Novo aluno';
 
+  const clienteDesde = document.getElementById('ac-ma-cliente-desde');
+  if (a?.created_at) {
+    clienteDesde.style.display = 'block';
+    clienteDesde.innerHTML = `📅 Cliente desde <b>${fmt(String(a.created_at).slice(0, 10))}</b> — essa data não muda quando o plano é renovado.`;
+  } else {
+    clienteDesde.style.display = 'none';
+  }
+
   document.getElementById('ac-ma-pid').innerHTML =
     '<option value="">Sem personal</option>' +
     AC_PERSONAIS.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
