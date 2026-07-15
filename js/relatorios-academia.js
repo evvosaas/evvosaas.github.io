@@ -393,42 +393,60 @@ async function gerarRelatorioInadimplentes() {
 
 /* ---------------- EXTRATO DE ALUNO ---------------- */
 let AC_REL_ALUNOS_TODOS = [];
+let AC_REL_ALUNO_SELECIONADO = null;
 
 async function popularSelectAlunos() {
-  const sel = document.getElementById('rel-aluno-sel');
-  sel.innerHTML = '<option>Carregando…</option>';
+  const busca = document.getElementById('rel-aluno-busca');
+  busca.value = '';
+  document.getElementById('rel-aluno-sugestoes').style.display = 'none';
+  document.getElementById('rel-conteudo').innerHTML = '<div class="carregando">Carregando…</div>';
+
   const { data: alunos } = await db.from('alunos').select('id, nome, cpf, ativo').order('nome');
-  document.getElementById('rel-aluno-busca').value = '';
   if (!alunos || !alunos.length) {
     AC_REL_ALUNOS_TODOS = [];
-    sel.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
+    AC_REL_ALUNO_SELECIONADO = null;
     document.getElementById('rel-conteudo').innerHTML = '<div class="vazio">Nenhum aluno cadastrado ainda.</div>';
     return;
   }
   AC_REL_ALUNOS_TODOS = alunos;
-  sel.innerHTML = alunos.map(a => `<option value="${a.id}">${esc(a.nome)}${a.ativo === false ? ' (inativo)' : ''}</option>`).join('');
+  AC_REL_ALUNO_SELECIONADO = alunos[0].id;
+  busca.value = alunos[0].nome;
   gerarRelatorioExtrato();
 }
 
 function filtrarSelectAlunos() {
   const termo = document.getElementById('rel-aluno-busca').value.trim().toLowerCase();
-  const sel = document.getElementById('rel-aluno-sel');
-  const filtrados = termo
+  const box = document.getElementById('rel-aluno-sugestoes');
+  const termoNumerico = termo.replace(/\D/g, '');
+
+  const filtrados = (termo
     ? AC_REL_ALUNOS_TODOS.filter(a =>
-        a.nome.toLowerCase().includes(termo) || (a.cpf || '').includes(termo.replace(/\D/g, '')))
-    : AC_REL_ALUNOS_TODOS;
+        a.nome.toLowerCase().includes(termo) || (termoNumerico && (a.cpf || '').includes(termoNumerico)))
+    : AC_REL_ALUNOS_TODOS
+  ).slice(0, 8);
 
-  sel.innerHTML = filtrados.length
-    ? filtrados.map(a => `<option value="${a.id}">${esc(a.nome)}${a.ativo === false ? ' (inativo)' : ''}</option>`).join('')
-    : '<option value="">Nenhum aluno encontrado</option>';
+  box.innerHTML = filtrados.length
+    ? filtrados.map(a => `
+        <div onmousedown="selecionarAlunoExtrato(${a.id})" style="padding:10px 14px;cursor:pointer;font-size:13.5px;border-bottom:1px solid var(--line)" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background=''">
+          ${esc(a.nome)}${a.ativo === false ? ' <span class="badge b-off">Inativo</span>' : ''}
+        </div>`).join('')
+    : '<div style="padding:10px 14px;color:var(--muted);font-size:13px">Nenhum aluno encontrado.</div>';
+  box.style.display = 'block';
+}
 
-  if (filtrados.length) gerarRelatorioExtrato();
+function selecionarAlunoExtrato(id) {
+  const a = AC_REL_ALUNOS_TODOS.find(x => x.id === id);
+  if (!a) return;
+  AC_REL_ALUNO_SELECIONADO = id;
+  document.getElementById('rel-aluno-busca').value = a.nome;
+  document.getElementById('rel-aluno-sugestoes').style.display = 'none';
+  gerarRelatorioExtrato();
 }
 
 async function gerarRelatorioExtrato() {
-  const alunoId = Number(document.getElementById('rel-aluno-sel').value);
+  const alunoId = AC_REL_ALUNO_SELECIONADO;
   const alvo = document.getElementById('rel-conteudo');
-  if (!alunoId) { alvo.innerHTML = '<div class="vazio">Selecione um aluno.</div>'; return; }
+  if (!alunoId) { alvo.innerHTML = '<div class="vazio">Digite e escolha um aluno na busca acima.</div>'; return; }
   alvo.innerHTML = '<div class="carregando">Gerando extrato…</div>';
 
   const [{ data: nomeAcademia }, { data: aluno }, { data: mensalidades, error }] = await Promise.all([
