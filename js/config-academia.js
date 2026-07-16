@@ -100,6 +100,8 @@ async function carregarConfigAc() {
   const mapa = {};
   (cfg || []).forEach(c => { mapa[c.chave] = c.valor; });
   document.getElementById('ac-cfg-dias-plano').value = mapa['alerta_vencimento_plano_dias'] || '30';
+  document.getElementById('ac-cfg-alerta-fatura-ativo').checked = mapa['alerta_fatura_ativo'] !== 'false';
+  document.getElementById('ac-cfg-alerta-fatura-dias').value = mapa['alerta_fatura_dias'] || '10';
 
   /* ---------- Integração Asaas ---------- */
   renderIntegracaoAc(academia);
@@ -127,6 +129,31 @@ async function salvarDiasVencimentoPlanoAc() {
     }));
   }
   toast(error ? 'Erro: ' + error.message : `Vamos avisar com ${dias} dia(s) de antecedência do vencimento do plano ✓`);
+}
+
+async function salvarConfigChaveAc(chave, valor) {
+  const { data, error: eUpd } = await db.from('config')
+    .update({ valor: String(valor), updated_at: new Date().toISOString() })
+    .eq('academia_id', MEU_ACADEMIA_ID).eq('chave', chave)
+    .select();
+  let error = eUpd;
+  if (!error && (!data || data.length === 0)) {
+    ({ error } = await db.from('config').insert({ academia_id: MEU_ACADEMIA_ID, chave, valor: String(valor) }));
+  }
+  return error;
+}
+
+async function salvarAlertaFaturaAc() {
+  const ativo = document.getElementById('ac-cfg-alerta-fatura-ativo').checked;
+  const dias = parseInt(document.getElementById('ac-cfg-alerta-fatura-dias').value) || 10;
+  if (dias < 1 || dias > 28) { toast('Use um valor entre 1 e 28 dias.'); return; }
+
+  const [e1, e2] = await Promise.all([
+    salvarConfigChaveAc('alerta_fatura_ativo', ativo),
+    salvarConfigChaveAc('alerta_fatura_dias', dias),
+  ]);
+  const error = e1 || e2;
+  toast(error ? 'Erro: ' + error.message : (ativo ? `Alerta ativado — avisa com ${dias} dia(s) de antecedência ✓` : 'Alerta desativado ✓'));
 }
 
 /* ---------------- PLANOS: NOVO / EDITAR ---------------- */
