@@ -527,7 +527,7 @@ async function gerarFaturaAc(id) {
 
   if (!confirm(`Gerar a fatura do mês para ${a.nome}?`)) return;
 
-  toast('Gerando fatura no Asaas…');
+  toast('Gerando fatura…');
   const { data, error } = await db.functions.invoke('criar-cobranca-avulsa', {
     body: { aluno_id: id },
   });
