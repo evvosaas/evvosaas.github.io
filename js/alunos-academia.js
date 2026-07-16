@@ -551,22 +551,40 @@ function mostrarFaturaAc(aluno, m) {
   document.getElementById('ac-mf-info').textContent =
     `${brl(m.valor_total ?? (Number(m.valor_academia) + Number(m.valor_personal)))} · vencimento ${fmt(m.vencimento)}${statusTxt}`;
 
+  const modoManual = !m.asaas_charge_id;
   const links = document.getElementById('ac-mf-links');
   const zap = (aluno.whatsapp || '').replace(/\D/g, '');
   const linkPagina = m.token_publico
     ? `${EVVO_CONFIG.PAGINA_FATURA}?t=${m.token_publico}`
     : m.url_fatura;
-  const msg = encodeURIComponent(
-    `*${document.getElementById('ac-nome-academia').textContent.toUpperCase()} - FATURA*\n\n` +
-    `Olá, ${aluno.nome.split(' ')[0]}!\n` +
-    `Sua fatura já está disponível:\n\n` +
-    `Valor: *${brl(m.valor_total ?? (Number(m.valor_academia) + Number(m.valor_personal)))}*\n` +
-    `Vencimento: ${fmt(m.vencimento)}\n\n` +
-    `Pague por boleto ou PIX no link:\n${linkPagina}\n\n` +
-    `Qualquer dúvida é só chamar!`
-  );
+
+  const avisoManual = modoManual
+    ? `<div class="hint" style="max-width:none;background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:11px 13px;font-weight:600">
+        💡 Sem cobrança online (essa academia ainda não configurou o Asaas) — cobre o aluno por fora (PIX, dinheiro) e depois dê a baixa manual no Financeiro quando receber.
+      </div>`
+    : '';
+
+  const msg = modoManual
+    ? encodeURIComponent(
+        `*${document.getElementById('ac-nome-academia').textContent.toUpperCase()} - MENSALIDADE*\n\n` +
+        `Olá, ${aluno.nome.split(' ')[0]}!\n` +
+        `Sua mensalidade deste mês:\n\n` +
+        `Valor: *${brl(m.valor_total ?? (Number(m.valor_academia) + Number(m.valor_personal)))}*\n` +
+        `Vencimento: ${fmt(m.vencimento)}\n\n` +
+        `Qualquer dúvida é só chamar!`
+      )
+    : encodeURIComponent(
+        `*${document.getElementById('ac-nome-academia').textContent.toUpperCase()} - FATURA*\n\n` +
+        `Olá, ${aluno.nome.split(' ')[0]}!\n` +
+        `Sua fatura já está disponível:\n\n` +
+        `Valor: *${brl(m.valor_total ?? (Number(m.valor_academia) + Number(m.valor_personal)))}*\n` +
+        `Vencimento: ${fmt(m.vencimento)}\n\n` +
+        `Pague por boleto ou PIX no link:\n${linkPagina}\n\n` +
+        `Qualquer dúvida é só chamar!`
+      );
 
   links.innerHTML = `
+    ${avisoManual}
     ${linkPagina ? `<a class="btn btn-primary" href="${linkPagina}" target="_blank">🔗 Abrir página da fatura</a>` : ''}
     ${zap ? `<a class="btn btn-primary" style="background:var(--ok)" href="https://wa.me/55${zap}?text=${msg}" target="_blank">💬 Enviar no WhatsApp do aluno</a>`
           : '<div class="hint">Aluno sem WhatsApp cadastrado.</div>'}
