@@ -11,6 +11,9 @@ let AC_PLANOS = [];
 let AC_PERSONAIS = [];
 let AC_MODALIDADES_LISTA = [];
 let AC_EXTRAS_POR_ALUNO = {};
+let AC_ALERTA_FATURA_ATIVO = true;
+let AC_ALERTA_FATURA_DIAS = 10;
+let AC_ALUNOS_COM_FATURA_MES = new Set();
 let acAluFiltro = 'todos';
 let acAluEditId = null;
 
@@ -19,12 +22,17 @@ async function carregarAlunosAc() {
   const tb = document.getElementById('ac-alunos-rows');
   tb.innerHTML = '<tr><td colspan="6" class="carregando">Carregando…</td></tr>';
 
-  const [{ data: planos }, { data: personais }, { data: alunos, error }, { data: modalidades }, { data: extras }] = await Promise.all([
+  const hoje = new Date();
+  const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+
+  const [{ data: planos }, { data: personais }, { data: alunos, error }, { data: modalidades }, { data: extras }, { data: cfgAlerta }, { data: mensalidadesMes }] = await Promise.all([
     db.from('planos').select('*').eq('ativo', true).order('valor'),
     db.from('personais').select('*').eq('ativo', true).order('nome'),
     db.from('vw_alunos_completo').select('*').order('nome'),
     db.from('modalidades').select('*').eq('ativo', true).order('nome'),
     db.from('matriculas_extras').select('*, modalidades(nome)').eq('ativo', true),
+    db.from('config').select('chave, valor').in('chave', ['alerta_fatura_ativo', 'alerta_fatura_dias']),
+    db.from('mensalidades').select('aluno_id').eq('competencia', competenciaAtual),
   ]);
 
   if (error) { tb.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
@@ -37,6 +45,12 @@ async function carregarAlunosAc() {
     if (!AC_EXTRAS_POR_ALUNO[e.aluno_id]) AC_EXTRAS_POR_ALUNO[e.aluno_id] = [];
     AC_EXTRAS_POR_ALUNO[e.aluno_id].push(e);
   });
+
+  const mapaAlerta = {};
+  (cfgAlerta || []).forEach(c => { mapaAlerta[c.chave] = c.valor; });
+  AC_ALERTA_FATURA_ATIVO = mapaAlerta['alerta_fatura_ativo'] !== 'false';
+  AC_ALERTA_FATURA_DIAS = parseInt(mapaAlerta['alerta_fatura_dias']) || 10;
+  AC_ALUNOS_COM_FATURA_MES = new Set((mensalidadesMes || []).map(m => m.aluno_id));
 
   if (!AC_PLANOS.length) {
     tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum plano cadastrado ainda — fale com o suporte Evvo para configurar os planos da sua academia.</td></tr>';
@@ -117,11 +131,26 @@ function renderAlunosAc() {
       return `<span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:10px;font-weight:700;margin:3px 4px 0 0;background:${cor}1f;color:${cor}">${esc(m.nome)}</span>`;
     }).join('');
 
+    // Alerta: dentro da janela configurada (ou já vencido) e ainda sem
+    // fatura gerada na competência atual.
+    let alertaFatura = '';
+    if (AC_ALERTA_FATURA_ATIVO && a.ativo !== false && a.dia_vencimento && !AC_ALUNOS_COM_FATURA_MES.has(a.id)) {
+      const hoje = new Date();
+      const hojeSoData = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      const alvo = new Date(hoje.getFullYear(), hoje.getMonth(), a.dia_vencimento);
+      const diasRestantes = Math.round((alvo - hojeSoData) / 86400000);
+      if (diasRestantes < 0) {
+        alertaFatura = `<div style="font-size:10px;font-weight:700;color:var(--late);margin-top:1px">Venceu há ${-diasRestantes} dia(s), sem fatura gerada</div>`;
+      } else if (diasRestantes <= AC_ALERTA_FATURA_DIAS) {
+        alertaFatura = `<div style="font-size:10px;font-weight:700;color:var(--warn);margin-top:1px">Faltam ${diasRestantes} dia(s) para o vencimento</div>`;
+      }
+    }
+
     return `
     <tr>
       <td><div class="acad-cell"><div class="av" style="background:${corDe(i)}">${ini(a.nome)}</div>
         <div><div class="nm">${esc(a.nome)}</div><div class="loc">${esc(a.whatsapp || a.cpf || '')}</div>${badgesModalidade ? `<div>${badgesModalidade}</div>` : ''}</div></div></td>
-      <td>${esc(a.plano)}<div class="loc">venc. dia ${a.dia_vencimento}</div></td>
+      <td>${esc(a.plano)}<div class="loc">venc. dia ${a.dia_vencimento}</div>${alertaFatura}</td>
       <td>${tagPers}</td>
       <td><b>${brl(total)}</b>${a.valor_personalizado != null ? '<div class="loc">valor personalizado</div>' : ''}${
         (() => {
