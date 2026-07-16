@@ -166,6 +166,10 @@ body{font-family:'Inter',sans-serif;background:var(--sidebar);color:var(--ink);m
           <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:10px">Pagamento processado em ambiente seguro (Asaas). Seus dados de cartão não passam pela academia.</div>
         </div>
       </details>
+
+      <div id="sem-pagto-online" style="display:none;text-align:center;padding:20px 10px;color:var(--muted);font-size:13.5px">
+        Essa fatura ainda não tem pagamento online disponível. Fale diretamente com a academia pra combinar a forma de pagamento.
+      </div>
     </div>
 
     <div class="estado-box" id="box-pago">
@@ -297,6 +301,17 @@ async function carregar(){
     btn.href = f.url_fatura;
     btn.textContent = 'Pagar ' + brl(f.valor_total) + ' no cartão';
     document.getElementById('met-cartao').style.display='block';
+  }
+
+  // Se não sobrou nenhuma forma de pagamento online visível (aluno de
+  // academia em modo manual, sem Asaas configurado), mostra um aviso
+  // no lugar, em vez de deixar a área em branco.
+  const temPix = document.getElementById('met-pix').style.display !== 'none';
+  const temBoleto = document.getElementById('met-boleto').style.display !== 'none';
+  const temCartao = document.getElementById('met-cartao').style.display !== 'none';
+  if (!temPix && !temBoleto && !temCartao) {
+    document.getElementById('area-pagto').querySelector('h3').style.display = 'none';
+    document.getElementById('sem-pagto-online').style.display = 'block';
   }
 }
 carregar();
