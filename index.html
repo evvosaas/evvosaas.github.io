@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.73<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.74<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.73<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.74<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -513,6 +513,19 @@
           <input type="number" id="ac-cfg-dias-plano" min="1" max="90" style="width:70px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px">
           dia(s) de antecedência
           <button class="btn btn-ghost btn-sm" onclick="salvarDiasVencimentoPlanoAc()">Salvar</button>
+        </div>
+        <div style="border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:10px">
+          <label style="display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;cursor:pointer">
+            <input type="checkbox" id="ac-cfg-alerta-fatura-ativo" style="width:17px;height:17px;flex:none">
+            Destacar aluno sem fatura gerada perto do vencimento
+          </label>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;padding-left:26px">
+            Avisar quando faltar
+            <input type="number" id="ac-cfg-alerta-fatura-dias" min="1" max="28" style="width:70px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px">
+            dia(s) ou menos pro vencimento, sem fatura gerada
+            <button class="btn btn-ghost btn-sm" onclick="salvarAlertaFaturaAc()">Salvar</button>
+          </div>
+          <div class="hint" style="padding-left:26px">Desmarque a caixinha acima se não quiser usar esse alerta.</div>
         </div>
       </div>
     </div>
