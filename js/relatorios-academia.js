@@ -832,19 +832,24 @@ async function gerarRelatorioVencimentosPlano() {
   const alvo = document.getElementById('rel-conteudo');
   alvo.innerHTML = '<div class="carregando">Gerando relatório…</div>';
 
-  const [{ data: nomeAcademia }, { data: cfgPlano }, { data: alunos, error }] = await Promise.all([
+  const [{ data: nomeAcademia }, { data: cfgPlano }, { data: alunos, error }, { data: planosTodos }] = await Promise.all([
     db.from('academias').select('nome').eq('id', MEU_ACADEMIA_ID).single(),
     db.from('config').select('valor').eq('chave', 'alerta_vencimento_plano_dias').maybeSingle(),
-    db.from('vw_alunos_completo').select('id, nome, cpf, plano, whatsapp, data_vencimento_plano')
+    db.from('vw_alunos_completo').select('id, nome, cpf, plano, plano_id, whatsapp, data_vencimento_plano')
       .eq('ativo', true).not('data_vencimento_plano', 'is', null)
       .order('data_vencimento_plano', { ascending: true }),
+    db.from('planos').select('id, periodicidade_meses'),
   ]);
 
   if (error) { alvo.innerHTML = `<div class="vazio">Erro: ${esc(error.message)}</div>`; return; }
 
+  const periodicidadePorPlano = {};
+  (planosTodos || []).forEach(p => { periodicidadePorPlano[p.id] = p.periodicidade_meses; });
+
   const diasAlerta = parseInt(cfgPlano?.valor) || 30;
   const hojeStr = new Date().toISOString().slice(0, 10);
-  const lista = alunos || [];
+  // Plano Mensal não tem "renovação" de verdade — só entra quem tem 3+ meses de duração.
+  const lista = (alunos || []).filter(a => (periodicidadePorPlano[a.plano_id] || 1) > 1);
 
   const calcSituacao = venc => {
     const diff = Math.round((new Date(venc) - new Date(hojeStr)) / 86400000);
