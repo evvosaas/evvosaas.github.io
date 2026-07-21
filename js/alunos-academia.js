@@ -25,7 +25,7 @@ async function carregarAlunosAc() {
   const hoje = new Date();
   const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
 
-  const [{ data: planos }, { data: personais }, { data: alunos, error }, { data: modalidades }, { data: extras }, { data: cfgAlerta }, { data: mensalidadesMes }] = await Promise.all([
+  const [{ data: planos }, { data: personais }, { data: alunos, error }, { data: modalidades }, { data: extras }, { data: cfgAlerta }, { data: mensalidadesMes }, { data: ajustesMes }] = await Promise.all([
     db.from('planos').select('*').eq('ativo', true).order('valor'),
     db.from('personais').select('*').eq('ativo', true).order('nome'),
     db.from('vw_alunos_completo').select('*').order('nome'),
@@ -33,6 +33,7 @@ async function carregarAlunosAc() {
     db.from('matriculas_extras').select('*, modalidades(nome)').eq('ativo', true),
     db.from('config').select('chave, valor').in('chave', ['alerta_fatura_ativo', 'alerta_fatura_dias']),
     db.from('mensalidades').select('aluno_id').eq('competencia', competenciaAtual).neq('status', 'cancelado'),
+    db.from('ajustes_participacao').select('aluno_id').eq('competencia', competenciaAtual),
   ]);
 
   if (error) { tb.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
@@ -50,7 +51,10 @@ async function carregarAlunosAc() {
   (cfgAlerta || []).forEach(c => { mapaAlerta[c.chave] = c.valor; });
   AC_ALERTA_FATURA_ATIVO = mapaAlerta['alerta_fatura_ativo'] !== 'false';
   AC_ALERTA_FATURA_DIAS = parseInt(mapaAlerta['alerta_fatura_dias']) || 10;
-  AC_ALUNOS_COM_FATURA_MES = new Set((mensalidadesMes || []).map(m => m.aluno_id));
+  AC_ALUNOS_COM_FATURA_MES = new Set([
+    ...(mensalidadesMes || []).map(m => m.aluno_id),
+    ...(ajustesMes || []).map(a => a.aluno_id),
+  ]);
 
   if (!AC_PLANOS.length) {
     tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum plano cadastrado ainda — fale com o suporte Evvo para configurar os planos da sua academia.</td></tr>';
@@ -222,6 +226,7 @@ function abrirAlunoAc(id) {
 
   acMaCalc();
   renderExtrasNoModalAc(id);
+  renderAjustesNoModalAc(id);
   openModal('m-aluno-ac');
 }
 
@@ -665,4 +670,111 @@ async function excluirMatriculaExtraAc(id, alunoId) {
   toast('Modalidade extra removida ✓');
   await carregarAlunosAc();
   renderExtrasNoModalAc(alunoId);
+}
+
+/* ---------------- AJUSTES DE PARTICIPAÇÃO (contrato pré-pago) ---------------- */
+async function renderAjustesNoModalAc(alunoId) {
+  const wrap = document.getElementById('ac-ma-ajustes-lista');
+  if (!alunoId) {
+    wrap.innerHTML = '<div class="loc">Salve o aluno primeiro pra poder lançar ajustes.</div>';
+    return;
+  }
+  const { data: ajustes } = await db.from('ajustes_participacao')
+    .select('*').eq('aluno_id', alunoId).order('competencia');
+
+  if (!ajustes || !ajustes.length) {
+    wrap.innerHTML = '<div class="loc">Nenhum ajuste lançado.</div>';
+    return;
+  }
+  wrap.innerHTML = ajustes.map(aj => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1">
+        <b>${fmt(aj.competencia).slice(3)}</b> · ${aj.conta_participacao ? brl(aj.valor) : '<span class="badge b-off">Só suprime alerta</span>'}
+        ${aj.observacao ? `<div class="loc">${esc(aj.observacao)}</div>` : ''}
+      </div>
+      <button class="icon-btn del" title="Remover ajuste" onclick="excluirAjusteParticipacaoAc(${aj.id}, ${alunoId})">🗑</button>
+    </div>`).join('');
+}
+
+function acAjpToggleConta() {
+  const conta = document.getElementById('ac-ajp-conta-participacao').checked;
+  document.getElementById('ac-ajp-plano-wrap').style.display = conta ? '' : 'none';
+  document.getElementById('ac-ajp-valor-wrap').style.display = conta ? '' : 'none';
+  document.getElementById('ac-ajp-hint').textContent = conta
+    ? 'Isso vai gerar 1 lançamento por mês, começando no mês escolhido — sem gerar boleto, sem aparecer no Dashboard/Financeiro, só entrando na divisão dos sócios.'
+    : 'Isso só suprime o alerta de "fatura não gerada" desse aluno nesses meses — não entra em nenhum cálculo de sócios nem em relatório financeiro.';
+}
+
+function abrirAjusteParticipacaoAc() {
+  if (!acAluEditId) { toast('Salve o aluno primeiro pra poder lançar um ajuste.'); return; }
+
+  const selPlano = document.getElementById('ac-ajp-plano');
+  selPlano.innerHTML = '<option value="">— digitar valor manualmente —</option>' +
+    AC_PLANOS.map(p => `<option value="${p.id}">${esc(rotuloPlano(p))}</option>`).join('');
+
+  document.getElementById('ac-ajp-valor').value = '';
+  document.getElementById('ac-ajp-conta-participacao').checked = true;
+  acAjpToggleConta();
+  const proximoMes = new Date();
+  proximoMes.setMonth(proximoMes.getMonth() + 1);
+  document.getElementById('ac-ajp-mes-inicial').value =
+    `${proximoMes.getFullYear()}-${String(proximoMes.getMonth() + 1).padStart(2, '0')}`;
+  document.getElementById('ac-ajp-qtd-meses').value = 1;
+  document.getElementById('ac-ajp-observacao').value = '';
+
+  openModal('m-ajuste-participacao-ac');
+}
+
+function acAjpUsarPlano() {
+  const planoId = Number(document.getElementById('ac-ajp-plano').value);
+  const plano = AC_PLANOS.find(p => p.id === planoId);
+  if (plano) document.getElementById('ac-ajp-valor').value = Number(plano.valor).toFixed(2);
+}
+
+async function salvarAjusteParticipacaoAc() {
+  const contaParticipacao = document.getElementById('ac-ajp-conta-participacao').checked;
+  const valorDigitado = document.getElementById('ac-ajp-valor').value;
+  const valor = contaParticipacao ? parseFloat(valorDigitado) : (parseFloat(valorDigitado) || 0);
+  const mesInicial = document.getElementById('ac-ajp-mes-inicial').value; // "AAAA-MM"
+  const qtdMeses = parseInt(document.getElementById('ac-ajp-qtd-meses').value) || 1;
+  const observacao = document.getElementById('ac-ajp-observacao').value.trim() || null;
+
+  if (contaParticipacao && !(valor > 0)) { toast('Informe um valor válido.'); return; }
+  if (!mesInicial) { toast('Escolha o mês inicial.'); return; }
+  if (qtdMeses < 1 || qtdMeses > 24) { toast('Use entre 1 e 24 meses.'); return; }
+
+  const [ano, mes] = mesInicial.split('-').map(Number);
+  const registros = [];
+  for (let i = 0; i < qtdMeses; i++) {
+    const d = new Date(ano, mes - 1 + i, 1);
+    registros.push({
+      academia_id: MEU_ACADEMIA_ID,
+      aluno_id: acAluEditId,
+      competencia: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`,
+      valor,
+      conta_participacao: contaParticipacao,
+      observacao,
+    });
+  }
+
+  const { error } = await db.from('ajustes_participacao').insert(registros);
+  if (error) {
+    toast(error.code === '23505'
+      ? 'Já existe ajuste lançado pra esse aluno em algum desses meses — confira a lista abaixo antes de tentar de novo.'
+      : 'Erro ao lançar: ' + error.message);
+    return;
+  }
+  closeModal('m-ajuste-participacao-ac');
+  toast(`${qtdMeses} ajuste(s) lançado(s) ✓`);
+  await carregarAlunosAc();
+  renderAjustesNoModalAc(acAluEditId);
+}
+
+async function excluirAjusteParticipacaoAc(id, alunoId) {
+  if (!confirm('Remover esse ajuste de participação?\n\nIsso tira esse valor da divisão dos sócios daquele mês.')) return;
+  const { error } = await db.from('ajustes_participacao').delete().eq('id', id);
+  if (error) { toast('Erro: ' + error.message); return; }
+  toast('Ajuste removido ✓');
+  await carregarAlunosAc();
+  renderAjustesNoModalAc(alunoId);
 }
