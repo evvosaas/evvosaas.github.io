@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.79<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.80<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.79<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.80<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -465,8 +465,10 @@
         <div class="row neg"><span class="lbl">(−) Parte dos personais (repasse, não entra na divisão)</span><span id="ac-c-repasse">—</span></div>
         <div class="row"><span class="lbl">(+) Líquido de Parceiros Externos (avulsos pagos no período)</span><span id="ac-c-avulsos" style="color:var(--ok)">—</span></div>
         <div class="row"><span class="lbl">(+) Outras Receitas (pagas no período)</span><span id="ac-c-outras" style="color:var(--ok)">—</span></div>
+        <div class="row" id="ac-c-ajustes-row" style="display:none"><span class="lbl">🔖 (+) Ajustes manuais (contratos pré-pagos)</span><span id="ac-c-ajustes" style="color:var(--ok)">—</span></div>
         <div class="row total"><span>Base para distribuição (parte da academia)</span><span id="ac-c-base">—</span></div>
       </div>
+      <div class="info-box" id="ac-c-ajustes-nota" style="display:none;background:var(--warn-bg);color:var(--warn)">🔖 Esse período inclui <b id="ac-c-ajustes-2">—</b> em ajustes manuais (alunos que já pagaram fora do sistema, ex: contrato anual). Esse valor <b>não</b> aparece no Dashboard nem no Financeiro, porque não é dinheiro que entrou na conta nesse período — só conta pra divisão dos sócios.</div>
       <div class="info-box">ℹ️ Despesas do período: <b id="ac-c-despesas" style="color:var(--ink)">—</b> — apenas informativo, <b>não</b> é descontado da base dos sócios.</div>
       <div class="socio-bar" id="ac-soc-bar"></div>
       <div class="socio-legend" id="ac-soc-legend"></div>
