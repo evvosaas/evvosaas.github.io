@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.77<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.79<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.77<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.79<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -796,6 +796,30 @@
   </div>
 </div>
 
+<!-- ================= MODAL AJUSTE DE PARTICIPAÇÃO ================= -->
+<div class="overlay" id="m-ajuste-participacao-ac" style="z-index:60">
+  <div class="modal">
+    <div class="modal-head"><div class="titulo">Lançar ajuste de participação</div><button class="close" onclick="closeModal('m-ajuste-participacao-ac')">✕</button></div>
+    <div class="form-grid">
+      <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;cursor:pointer">
+        <input type="checkbox" id="ac-ajp-conta-participacao" checked onchange="acAjpToggleConta()" style="width:17px;height:17px;flex:none">
+        Contar na divisão dos sócios
+      </label></div>
+      <div class="full" id="ac-ajp-plano-wrap"><label>Usar valor do plano <span style="font-weight:400;color:var(--muted)">(opcional — preenche o valor sozinho)</span></label>
+        <select id="ac-ajp-plano" onchange="acAjpUsarPlano()"><option value="">— digitar valor manualmente —</option></select>
+      </div>
+      <div class="full" id="ac-ajp-valor-wrap"><label>Valor mensal (R$) *</label><input id="ac-ajp-valor" type="number" min="0.01" step="0.01" placeholder="119,90"></div>
+      <div><label>Mês inicial *</label><input type="month" id="ac-ajp-mes-inicial"></div>
+      <div><label>Quantos meses gerar *</label><input type="number" id="ac-ajp-qtd-meses" min="1" max="24" value="1"></div>
+      <div class="full"><label>Observação</label><input id="ac-ajp-observacao" placeholder="Ex.: Contrato anual pago no sistema anterior"></div>
+    </div>
+    <div class="form-note" id="ac-ajp-hint">Isso vai gerar 1 lançamento por mês, começando no mês escolhido — sem gerar boleto, sem aparecer no Dashboard/Financeiro, só entrando na divisão dos sócios.</div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="salvarAjusteParticipacaoAc()">Lançar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL RENOVAÇÃO RÁPIDA DE PLANO ================= -->
 <div class="overlay" id="m-renovar-plano-ac">
   <div class="modal">
@@ -1015,6 +1039,14 @@
         <button class="btn btn-ghost btn-sm" id="ac-ma-extra-btn" onclick="abrirMatriculaExtraAc()">+ Adicionar modalidade</button>
       </div>
       <div id="ac-ma-extras-lista"><div class="loc">Salve o aluno primeiro pra poder adicionar modalidades extras.</div></div>
+    </div>
+    <div id="ac-ma-ajustes-wrap" style="border-top:1px solid var(--line);margin-top:6px;padding:14px 24px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Ajustes de participação (contrato pré-pago)</div>
+        <button class="btn btn-ghost btn-sm" id="ac-ma-ajuste-btn" onclick="abrirAjusteParticipacaoAc()">+ Lançar ajuste</button>
+      </div>
+      <div class="hint" style="max-width:none;margin-bottom:8px">Use quando o aluno já pagou (em outro sistema, ou um contrato anual adiantado) — o valor entra na divisão dos sócios mês a mês, sem aparecer como dinheiro recebido no Dashboard/Financeiro.</div>
+      <div id="ac-ma-ajustes-lista"><div class="loc">Salve o aluno primeiro pra poder lançar ajustes.</div></div>
     </div>
     <div class="form-note" id="ac-ma-nota">—</div>
     <div class="modal-foot">
