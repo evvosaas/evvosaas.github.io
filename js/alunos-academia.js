@@ -32,7 +32,7 @@ async function carregarAlunosAc() {
     db.from('modalidades').select('*').eq('ativo', true).order('nome'),
     db.from('matriculas_extras').select('*, modalidades(nome)').eq('ativo', true),
     db.from('config').select('chave, valor').in('chave', ['alerta_fatura_ativo', 'alerta_fatura_dias']),
-    db.from('mensalidades').select('aluno_id').eq('competencia', competenciaAtual),
+    db.from('mensalidades').select('aluno_id').eq('competencia', competenciaAtual).neq('status', 'cancelado'),
   ]);
 
   if (error) { tb.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
@@ -306,7 +306,7 @@ let acRvpPlanos = [];
 
 async function abrirRenovarPlanoAc(alunoId) {
   const [{ data: aluno, error }, { data: planos }] = await Promise.all([
-    db.from('alunos').select('id, nome, plano_id').eq('id', alunoId).single(),
+    db.from('alunos').select('id, nome, plano_id, created_at').eq('id', alunoId).single(),
     db.from('planos').select('*').eq('ativo', true).order('valor'),
   ]);
   if (error || !aluno) { toast('Não achei esse aluno.'); return; }
@@ -314,6 +314,9 @@ async function abrirRenovarPlanoAc(alunoId) {
   acRvpAlunoId = alunoId;
   acRvpPlanos = ordenarPlanos(planos || []);
   document.getElementById('ac-rvp-nome').value = aluno.nome;
+  document.getElementById('ac-rvp-cliente-desde').textContent = aluno.created_at
+    ? `📅 Cliente desde ${fmt(String(aluno.created_at).slice(0, 10))}`
+    : '';
   document.getElementById('ac-rvp-plano').innerHTML = acRvpPlanos
     .map(p => `<option value="${p.id}" ${p.id === aluno.plano_id ? 'selected' : ''}>${esc(rotuloPlano(p))}</option>`).join('');
   document.getElementById('ac-rvp-ini').value = new Date().toISOString().slice(0, 10);
