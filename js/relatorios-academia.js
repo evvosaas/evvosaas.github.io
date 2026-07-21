@@ -319,10 +319,12 @@ async function gerarRelatorioParticipacao() {
         <tr><td>(−) Parte dos personais (repasse)</td><td style="text-align:right;color:var(--late)">− ${brl(p.total_personais)}</td></tr>
         <tr><td>(+) Líquido de Parceiros Externos (avulsos)</td><td style="text-align:right;color:var(--ok)">+ ${brl(p.avulsas_liquido || 0)}</td></tr>
         <tr><td>(+) Outras Receitas</td><td style="text-align:right;color:var(--ok)">+ ${brl(p.outras_liquido || 0)}</td></tr>
+        ${Number(p.ajustes_participacao || 0) > 0 ? `<tr><td>🔖 (+) Ajustes manuais (contratos pré-pagos)</td><td style="text-align:right;color:var(--ok)">+ ${brl(p.ajustes_participacao)}</td></tr>` : ''}
         <tr class="rel-total-row"><td>Base para distribuição</td><td style="text-align:right">${brl(p.base_distribuicao)}</td></tr>
       </tbody>
     </table>
     <div class="rel-nota" style="margin-top:8px">Despesas do período: ${brl(p.despesas_periodo)} — apenas informativo, não é descontado da base dos sócios.</div>
+    ${Number(p.ajustes_participacao || 0) > 0 ? `<div class="rel-nota" style="margin-top:4px">🔖 Esse período inclui ${brl(p.ajustes_participacao)} em ajustes manuais (alunos que já pagaram fora do sistema) — esse valor não aparece no Dashboard nem no Financeiro, só entra na divisão dos sócios.</div>` : ''}
 
     <div class="rel-section-title">Distribuição por sócio</div>
     <table class="rel-table">
