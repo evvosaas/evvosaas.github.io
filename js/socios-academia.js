@@ -42,6 +42,15 @@ async function carregarSociosAc() {
     document.getElementById('ac-c-repasse').textContent = '− ' + brl(p.total_personais);
     document.getElementById('ac-c-avulsos').textContent = '+ ' + brl(p.avulsas_liquido || 0);
     document.getElementById('ac-c-outras').textContent = '+ ' + brl(p.outras_liquido || 0);
+
+    const ajustes = Number(p.ajustes_participacao || 0);
+    document.getElementById('ac-c-ajustes-row').style.display = ajustes > 0 ? 'flex' : 'none';
+    document.getElementById('ac-c-ajustes-nota').style.display = ajustes > 0 ? 'block' : 'none';
+    if (ajustes > 0) {
+      document.getElementById('ac-c-ajustes').textContent = '+ ' + brl(ajustes);
+      document.getElementById('ac-c-ajustes-2').textContent = brl(ajustes);
+    }
+
     document.getElementById('ac-c-base').textContent = brl(p.base_distribuicao);
     document.getElementById('ac-c-despesas').textContent = brl(p.despesas_periodo);
   }
