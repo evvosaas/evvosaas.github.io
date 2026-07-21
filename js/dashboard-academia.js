@@ -57,21 +57,33 @@ async function carregarDashboardAc() {
   const hojeStr = hoje.toISOString().slice(0, 10);
   const limiteStr = new Date(hoje.getTime() + diasAlerta * 86400000).toISOString().slice(0, 10);
 
-  const { data: planosVencendo, error: e3 } = await db.from('vw_alunos_completo')
-    .select('id, nome, plano, data_vencimento_plano')
-    .eq('ativo', true)
-    .not('data_vencimento_plano', 'is', null)
-    .lte('data_vencimento_plano', limiteStr)
-    .order('data_vencimento_plano', { ascending: true })
-    .limit(10);
+  const [{ data: planosVencendo, error: e3 }, { data: planosTodos }] = await Promise.all([
+    db.from('vw_alunos_completo')
+      .select('id, nome, plano, plano_id, data_vencimento_plano')
+      .eq('ativo', true)
+      .not('data_vencimento_plano', 'is', null)
+      .lte('data_vencimento_plano', limiteStr)
+      .order('data_vencimento_plano', { ascending: true })
+      .limit(30),
+    db.from('planos').select('id, periodicidade_meses'),
+  ]);
+
+  const periodicidadePorPlano = {};
+  (planosTodos || []).forEach(p => { periodicidadePorPlano[p.id] = p.periodicidade_meses; });
+
+  // Plano Mensal não tem "renovação" de verdade (é mês a mês por natureza) —
+  // só entra nesse alerta quem tem duração de 3 meses ou mais.
+  const planosVencendoFiltrado = (planosVencendo || [])
+    .filter(a => (periodicidadePorPlano[a.plano_id] || 1) > 1)
+    .slice(0, 10);
 
   const tbPlano = document.getElementById('ac-dash-planos-rows');
   if (e3) {
     tbPlano.innerHTML = `<tr><td colspan="5" class="vazio">Erro ao carregar: ${esc(e3.message)}</td></tr>`;
-  } else if (!planosVencendo || !planosVencendo.length) {
+  } else if (!planosVencendoFiltrado.length) {
     tbPlano.innerHTML = `<tr><td colspan="5" class="vazio">Nenhum plano vencendo nos próximos ${diasAlerta} dias. 🎉</td></tr>`;
   } else {
-    tbPlano.innerHTML = planosVencendo.map((a, i) => {
+    tbPlano.innerHTML = planosVencendoFiltrado.map((a, i) => {
       const diffDias = Math.round((new Date(a.data_vencimento_plano) - new Date(hojeStr)) / 86400000);
       const situacao = diffDias < 0
         ? `<span class="badge b-late">Vencido há ${Math.abs(diffDias)} dia(s)</span>`
