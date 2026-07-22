@@ -15,8 +15,9 @@ async function carregarParceirosAc() {
   const grid = document.getElementById('ac-parc-grid');
   grid.innerHTML = '<div class="carregando" style="grid-column:1/-1">Carregando…</div>';
 
-  const [{ data: parceiros, error }, { data: cobrancas }] = await Promise.all([
+  const [{ data: parceiros, error }, { data: cobrancasTodas }, { data: cobrancasHistorico }] = await Promise.all([
     db.from('parceiros_externos').select('*').order('nome'),
+    db.from('cobrancas_avulsas').select('parceiro_externo_id, status, status_repasse, valor_parceiro'),
     db.from('cobrancas_avulsas')
       .select('*, alunos(nome), parceiros_externos(nome)')
       .order('data_cobranca', { ascending: false })
@@ -28,7 +29,16 @@ async function carregarParceirosAc() {
   if (!AC_PARC_LIST.length) {
     grid.innerHTML = '<div class="vazio" style="grid-column:1/-1">Nenhum parceiro externo cadastrado. Use "+ Novo parceiro externo".</div>';
   } else {
-    grid.innerHTML = AC_PARC_LIST.map((p, i) => `
+    const todasCobrancas = cobrancasTodas || [];
+    grid.innerHTML = AC_PARC_LIST.map((p, i) => {
+      const dessePercero = todasCobrancas.filter(c => c.parceiro_externo_id === p.id);
+      const devido = dessePercero
+        .filter(c => c.status === 'pago' && c.status_repasse !== 'pago')
+        .reduce((s, c) => s + Number(c.valor_parceiro || 0), 0);
+      const jaPago = dessePercero
+        .filter(c => c.status_repasse === 'pago')
+        .reduce((s, c) => s + Number(c.valor_parceiro || 0), 0);
+      return `
       <div class="pers-card">
         <div class="pers-acts">
           <button class="icon-btn" title="Editar" onclick="abrirParceiroAc(${p.id})">✎</button>
@@ -39,14 +49,25 @@ async function carregarParceirosAc() {
           <div><div class="nm">${esc(p.nome)}</div>
             <div class="cref">${p.tipo ? esc(p.tipo) : ''}${p.chave_pix ? ' · PIX: ' + esc(p.chave_pix) : ''}</div></div>
         </div>
+        <div class="pers-stats">
+          <div><div class="l">Cobranças lançadas</div><div class="v">${dessePercero.length}</div></div>
+          <div><div class="l">Saldo a pagar</div><div class="v" style="color:var(--info)">${brl(devido)}</div></div>
+        </div>
+        ${jaPago > 0 ? `<div class="loc" style="margin-top:8px;font-size:12px;color:var(--muted)">Já repassado: ${brl(jaPago)}</div>` : ''}
+        <div class="pers-foot">
+          <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center"
+            ${devido <= 0 ? 'disabled style="flex:1;justify-content:center;opacity:.5;cursor:not-allowed"' : ''}
+            onclick="pagarTodosRepassesParceiroAc(${p.id}, ${devido})">💸 Pagar repasse ${devido > 0 ? '(' + brl(devido) + ')' : ''}</button>
+        </div>
         ${p.whatsapp ? `<div class="loc" style="margin-top:8px;font-size:12px;color:var(--muted)">WhatsApp: ${esc(p.whatsapp)}</div>` : ''}
         ${p.ativo === false ? '<div style="margin-top:10px"><span class="badge b-off">Inativo</span></div>' : ''}
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   /* ---------- Histórico de cobranças avulsas ---------- */
   const tb = document.getElementById('ac-cobav-rows');
-  const linhas = cobrancas || [];
+  const linhas = cobrancasHistorico || [];
   AC_COB_LIST = linhas;
   if (!linhas.length) {
     tb.innerHTML = '<tr><td colspan="10" class="vazio">Nenhuma cobrança avulsa lançada ainda.</td></tr>';
@@ -381,6 +402,23 @@ async function salvarRepasseAc() {
   if (error) { toast('Erro ao registrar repasse: ' + error.message); return; }
   closeModal('m-repasse-ca');
   toast(`Repasse de ${brl(c.valor_parceiro)} ao parceiro registrado ✓`);
+  carregarParceirosAc();
+}
+
+async function pagarTodosRepassesParceiroAc(parceiroId, valor) {
+  const p = AC_PARC_LIST.find(x => x.id === parceiroId);
+  if (!p) return;
+  const chave = p.chave_pix ? `\nChave PIX: ${p.chave_pix}` : '';
+  if (!confirm(`Registrar repasse de ${brl(valor)} para ${p.nome}, quitando TODAS as cobranças pendentes dele de uma vez?${chave}\n\nFaça a transferência no seu banco e confirme aqui para registrar.`)) return;
+
+  const { error } = await db.from('cobrancas_avulsas').update({
+    status_repasse: 'pago',
+    data_pagamento_repasse: new Date().toISOString(),
+    forma_pagamento_repasse: 'pix',
+  }).eq('parceiro_externo_id', parceiroId).eq('status', 'pago').eq('status_repasse', 'pendente');
+
+  if (error) { toast('Erro ao registrar repasse: ' + error.message); return; }
+  toast(`Repasse de ${brl(valor)} registrado para ${p.nome} ✓`);
   carregarParceirosAc();
 }
 
