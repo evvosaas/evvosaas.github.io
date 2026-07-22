@@ -195,6 +195,7 @@ async function gerarRelatorioFinanceiro() {
       <span>Resultado do período (recebido − repasse a terceiros − despesas)</span>
       <span class="num" style="color:${resultado >= 0 ? 'var(--ok)' : 'var(--late)'}">${brl(resultado)}</span>
     </div>
+    <div class="rel-nota" style="margin-top:4px">Esse número é só o desempenho <b>desse período</b> (não acumula mês a mês). Pra ver o saldo total acumulado da academia, veja "💰 Saldo em Caixa" no Dashboard.</div>
     <div class="rel-nota">Relatório informativo. "Recebido" inclui mensalidades + cobranças avulsas de Parceiros Externos + Outras Receitas, pelo valor efetivamente pago. "A receber", "Em atraso" e "Cancelado" referem-se apenas às mensalidades — veja os relatórios dedicados para o detalhamento de pendências de avulsos e outras receitas.</div>
   `;
 }
