@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=37">
+<link rel="stylesheet" href="css/style.css?v=38">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -55,7 +55,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.85<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.86<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +250,7 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.85<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <div class="side-foot">Evvo · v5.86<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -261,9 +261,10 @@
       <div class="chip"><div class="av" id="ac-user-ini">AC</div> <span id="ac-nome-academia">Academia</span></div>
     </div>
     <div class="kpis">
-      <div class="kpi grad"><div class="label">Recebido no mês</div><div class="value" id="ack-bruto">—</div><div class="delta">mensalidades + avulsos (Parceiros Externos)</div></div>
-      <div class="kpi blue"><div class="label">Repasse a terceiros</div><div class="value" id="ack-repasse">—</div><div class="delta">personais + parceiros externos</div></div>
-      <div class="kpi green"><div class="label">Receita da academia</div><div class="value" id="ack-academia">—</div><div class="delta">já descontado o repasse</div></div>
+      <div class="kpi grad"><div class="label">Recebido no mês</div><div class="value" id="ack-bruto">—</div><div class="delta">mensalidades + avulsos (Parceiros Externos) + Outras Receitas</div></div>
+      <div class="kpi blue"><div class="label">(−) Repasse a terceiros</div><div class="value" id="ack-repasse">—</div><div class="delta">personais + parceiros externos</div></div>
+      <div class="kpi amber"><div class="label">(−) Despesas do mês</div><div class="value" id="ack-despesas">—</div><div class="delta">lançadas com vencimento nesse mês</div></div>
+      <div class="kpi green"><div class="label">(=) Receita da academia</div><div class="value" id="ack-academia">—</div><div class="delta">já descontado repasse e despesas</div></div>
       <div class="kpi amber"><div class="label">Em atraso</div><div class="value" id="ack-atraso">—</div><div class="delta" id="ack-atraso-qtd">—</div></div>
     </div>
     <div class="card" id="ac-caixa-card" style="display:none">
