@@ -102,9 +102,25 @@ async function carregarConfigAc() {
   document.getElementById('ac-cfg-dias-plano').value = mapa['alerta_vencimento_plano_dias'] || '30';
   document.getElementById('ac-cfg-alerta-fatura-ativo').checked = mapa['alerta_fatura_ativo'] !== 'false';
   document.getElementById('ac-cfg-alerta-fatura-dias').value = mapa['alerta_fatura_dias'] || '10';
+  document.getElementById('ac-cfg-caixa-saldo').value = mapa['caixa_saldo_inicial'] || '';
+  document.getElementById('ac-cfg-caixa-data').value = mapa['caixa_data_inicio'] || '';
 
   /* ---------- Integração Asaas ---------- */
   renderIntegracaoAc(academia);
+}
+
+async function salvarCaixaInicialAc() {
+  const saldo = parseFloat(document.getElementById('ac-cfg-caixa-saldo').value);
+  const data = document.getElementById('ac-cfg-caixa-data').value;
+  if (!(saldo >= 0)) { toast('Informe um saldo válido (pode ser 0).'); return; }
+  if (!data) { toast('Escolha a partir de qual data contar.'); return; }
+
+  const [e1, e2] = await Promise.all([
+    salvarConfigChaveAc('caixa_saldo_inicial', saldo),
+    salvarConfigChaveAc('caixa_data_inicio', data),
+  ]);
+  const error = e1 || e2;
+  toast(error ? 'Erro: ' + error.message : `Caixa inicial de ${brl(saldo)} configurado a partir de ${fmt(data)} ✓`);
 }
 
 function toggleAcordeaoModalidade(chave) {
