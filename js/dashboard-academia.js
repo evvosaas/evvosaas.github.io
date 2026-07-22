@@ -100,6 +100,38 @@ async function carregarDashboardAc() {
     }).join('');
   }
 
+  // Saldo em Caixa (referência informativa — NÃO entra na Participação dos sócios)
+  const { data: cfgCaixa } = await db.from('config').select('chave, valor')
+    .in('chave', ['caixa_saldo_inicial', 'caixa_data_inicio']);
+  const mapaCaixa = {};
+  (cfgCaixa || []).forEach(c => { mapaCaixa[c.chave] = c.valor; });
+  const caixaCard = document.getElementById('ac-caixa-card');
+
+  if (mapaCaixa.caixa_data_inicio) {
+    const dataInicio = mapaCaixa.caixa_data_inicio;
+    const saldoInicial = Number(mapaCaixa.caixa_saldo_inicial) || 0;
+
+    const [{ data: pagosCaixa }, { data: avulsasCaixa }, { data: outrasCaixa }, { data: despesasCaixa }] = await Promise.all([
+      db.from('pagamentos').select('valor').gte('pago_em', dataInicio + 'T00:00:00'),
+      db.from('cobrancas_avulsas').select('valor_total').eq('status', 'pago').gte('pago_em', dataInicio + 'T00:00:00'),
+      db.from('outras_receitas').select('valor').eq('status', 'pago').gte('pago_em', dataInicio + 'T00:00:00'),
+      db.from('despesas').select('valor').gte('vencimento', dataInicio),
+    ]);
+
+    const entrouMensalidades = (pagosCaixa || []).reduce((s, p) => s + Number(p.valor), 0);
+    const entrouAvulsas = (avulsasCaixa || []).reduce((s, c) => s + Number(c.valor_total), 0);
+    const entrouOutras = (outrasCaixa || []).reduce((s, o) => s + Number(o.valor), 0);
+    const saiuDespesas = (despesasCaixa || []).reduce((s, d) => s + Number(d.valor), 0);
+
+    const saldoCaixa = saldoInicial + entrouMensalidades + entrouAvulsas + entrouOutras - saiuDespesas;
+
+    caixaCard.style.display = 'block';
+    document.getElementById('ac-caixa-valor').textContent = brl(saldoCaixa);
+    document.getElementById('ac-caixa-desde').textContent = fmt(dataInicio);
+  } else {
+    caixaCard.style.display = 'none';
+  }
+
   // Vencimentos próximos + atrasos
   const { data: lista, error: e2 } = await db.from('vw_financeiro')
     .select('aluno, vencimento, valor_total, status')
