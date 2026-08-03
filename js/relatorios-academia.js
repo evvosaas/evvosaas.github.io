@@ -104,13 +104,13 @@ async function gerarRelatorioFinanceiro() {
   const totalDespesas = (despesas || []).reduce((s, d) => s + Number(d.valor), 0);
   const resultado = recebido - repasse - totalDespesas;
 
-  const linhasFaturas = lista.filter(m => m.status !== 'cancelado').map(m => {
+  const linhasFaturas = lista.map(m => {
     const valorMostrar = m.status === 'pago' ? (recebidoPorId[m.id] ?? m.valor_total) : m.valor_total;
     return `<tr>
       <td>${esc(m.aluno)}</td>
       <td>${fmt(m.vencimento)}</td>
       <td>${brl(valorMostrar)}</td>
-      <td style="text-transform:capitalize">${esc(m.status)}</td>
+      <td style="text-transform:capitalize${m.status === 'cancelado' ? ';color:var(--muted)' : ''}">${esc(m.status)}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma fatura no período.</td></tr>';
 
@@ -129,9 +129,10 @@ async function gerarRelatorioFinanceiro() {
       <td>${brl(o.valor)}</td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Nenhuma outra receita paga no período.</td></tr>';
 
-  const linhasDespesas = (despesas || []).map(d => `
-    <tr><td>${esc(d.descricao)}</td><td>${esc(d.categoria)}</td><td>${fmt(d.vencimento)}</td><td>${brl(d.valor)}</td></tr>
-  `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Nenhuma despesa no período.</td></tr>';
+  const linhasDespesas = (despesas || []).map(d => {
+    const statusBadge = d.status === 'pago' ? '<span class="badge b-ok">Paga</span>' : '<span class="badge b-warn">Pendente</span>';
+    return `<tr><td>${esc(d.descricao)}</td><td>${esc(d.categoria)}</td><td>${fmt(d.vencimento)}</td><td>${brl(d.valor)}</td><td>${statusBadge}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhuma despesa no período.</td></tr>';
 
   // Discriminação do repasse a terceiros: personal (sobre mensalidade) + parceiro externo (sobre avulso)
   const repassesPersonal = lista.filter(m => m.status === 'pago' && Number(m.valor_personal) > 0).map(m => `
@@ -186,9 +187,9 @@ async function gerarRelatorioFinanceiro() {
 
     <div class="rel-section-title">Despesas do período</div>
     <table class="rel-table">
-      <thead><tr><th>Descrição</th><th>Categoria</th><th>Vencimento</th><th>Valor</th></tr></thead>
+      <thead><tr><th>Descrição</th><th>Categoria</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
       <tbody>${linhasDespesas}</tbody>
-      <tfoot><tr class="rel-total-row"><td colspan="3">Total de despesas</td><td>${brl(totalDespesas)}</td></tr></tfoot>
+      <tfoot><tr class="rel-total-row"><td colspan="3">Total de despesas</td><td colspan="2">${brl(totalDespesas)}</td></tr></tfoot>
     </table>
 
     <div class="rel-resultado">
@@ -196,7 +197,7 @@ async function gerarRelatorioFinanceiro() {
       <span class="num" style="color:${resultado >= 0 ? 'var(--ok)' : 'var(--late)'}">${brl(resultado)}</span>
     </div>
     <div class="rel-nota" style="margin-top:4px">Esse número é só o desempenho <b>desse período</b> (não acumula mês a mês). Pra ver o saldo total acumulado da academia, veja "💰 Saldo em Caixa" no Dashboard.</div>
-    <div class="rel-nota">Relatório informativo. "Recebido" inclui mensalidades + cobranças avulsas de Parceiros Externos + Outras Receitas, pelo valor efetivamente pago. "A receber", "Em atraso" e "Cancelado" referem-se apenas às mensalidades — veja os relatórios dedicados para o detalhamento de pendências de avulsos e outras receitas.</div>
+    <div class="rel-nota">Relatório informativo. "Recebido" inclui mensalidades + cobranças avulsas de Parceiros Externos + Outras Receitas, pelo valor efetivamente pago. "A receber", "Em atraso" e "Cancelado" referem-se apenas às mensalidades — veja os relatórios dedicados para o detalhamento de pendências de avulsos e outras receitas. As despesas são contadas pelo mês de <b>vencimento</b>, não pela data de pagamento — por isso a coluna Status mostra se ela já foi paga ou ainda está pendente, mesmo já entrando no total desse período.</div>
   `;
 }
 
