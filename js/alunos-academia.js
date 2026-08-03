@@ -885,6 +885,7 @@ async function salvarMensalidadeRetroativaAc() {
     personal_id: a?.personal_id || null,
     vencimento,
     status: jaPaga ? 'pago' : 'pendente',
+    pago_em: jaPaga ? `${dataPagamento}T12:00:00` : null,
   }).select().single();
 
   if (eIns) { toast('Erro ao lançar: ' + eIns.message); return; }
