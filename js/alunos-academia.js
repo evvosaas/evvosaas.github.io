@@ -243,6 +243,7 @@ function abrirAlunoAc(id) {
   acMaCalc();
   renderExtrasNoModalAc(id);
   renderAjustesNoModalAc(id);
+  renderRetroNoModalAc(id);
   openModal('m-aluno-ac');
 }
 
@@ -791,4 +792,139 @@ async function excluirAjusteParticipacaoAc(id, alunoId) {
   toast('Ajuste removido ✓');
   await carregarAlunosAc();
   renderAjustesNoModalAc(alunoId);
+}
+
+/* ---------------- MENSALIDADE RETROATIVA (migração de sistema antigo) ---------------- */
+async function renderRetroNoModalAc(alunoId) {
+  const wrap = document.getElementById('ac-ma-retro-lista');
+  if (!alunoId) {
+    wrap.innerHTML = '<div class="loc">Salve o aluno primeiro pra poder lançar.</div>';
+    return;
+  }
+  const { data: lista } = await db.from('mensalidades')
+    .select('id, competencia, vencimento, valor_academia, valor_personal, status')
+    .eq('aluno_id', alunoId)
+    .is('asaas_charge_id', null)
+    .order('competencia');
+
+  if (!lista || !lista.length) {
+    wrap.innerHTML = '<div class="loc">Nenhuma mensalidade retroativa lançada.</div>';
+    return;
+  }
+  wrap.innerHTML = lista.map(m => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1">
+        <b>${fmt(m.competencia).slice(3)}</b> · ${brl(Number(m.valor_academia) + Number(m.valor_personal || 0))}
+        <div class="loc">vencimento ${fmt(m.vencimento)} · ${m.status === 'pago' ? '<span class="badge b-ok">Paga</span>' : '<span class="badge b-warn">Pendente</span>'}</div>
+      </div>
+      <button class="icon-btn del" title="Excluir lançamento" onclick="excluirMensalidadeRetroativaAc(${m.id}, ${alunoId})">🗑</button>
+    </div>`).join('');
+}
+
+function abrirMensalidadeRetroativaAc() {
+  if (!acAluEditId) { toast('Salve o aluno primeiro pra poder lançar uma mensalidade retroativa.'); return; }
+  const a = AC_ALUNOS.find(x => x.id === acAluEditId);
+  const plano = AC_PLANOS.find(p => p.id === a?.plano_id);
+
+  document.getElementById('ac-retro-competencia').value = '';
+  document.getElementById('ac-retro-vencimento').value = '';
+  document.getElementById('ac-retro-valor').value = a ? Number(a.valor_personalizado ?? plano?.valor ?? 0).toFixed(2) : '';
+  const temPersonal = a?.personal_id != null;
+  document.getElementById('ac-retro-valor-personal').disabled = !temPersonal;
+  document.getElementById('ac-retro-valor-personal').value = temPersonal ? Number(a.valor_personal || 0).toFixed(2) : 0;
+  document.getElementById('ac-retro-ja-paga').checked = true;
+  document.getElementById('ac-retro-data-pagamento').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('ac-retro-forma').value = 'manual';
+  acRetroTogglePaga();
+
+  openModal('m-mensalidade-retro-ac');
+}
+
+function acRetroTogglePaga() {
+  const paga = document.getElementById('ac-retro-ja-paga').checked;
+  document.getElementById('ac-retro-pago-wrap').style.display = paga ? '' : 'none';
+  document.getElementById('ac-retro-forma-wrap').style.display = paga ? '' : 'none';
+}
+
+function acRetroCalc() {
+  const comp = document.getElementById('ac-retro-competencia').value;
+  if (!comp || document.getElementById('ac-retro-vencimento').value) return;
+  const [ano, mes] = comp.split('-').map(Number);
+  const ultimoDia = new Date(ano, mes, 0);
+  document.getElementById('ac-retro-vencimento').value = ultimoDia.toISOString().slice(0, 10);
+}
+
+async function salvarMensalidadeRetroativaAc() {
+  const compMes = document.getElementById('ac-retro-competencia').value;
+  const vencimento = document.getElementById('ac-retro-vencimento').value;
+  const valorPlano = parseFloat(document.getElementById('ac-retro-valor').value);
+  const valorPersonal = parseFloat(document.getElementById('ac-retro-valor-personal').value) || 0;
+  const jaPaga = document.getElementById('ac-retro-ja-paga').checked;
+  const dataPagamento = document.getElementById('ac-retro-data-pagamento').value;
+  const forma = document.getElementById('ac-retro-forma').value;
+
+  if (!compMes) { toast('Escolha a competência.'); return; }
+  if (!vencimento) { toast('Informe o vencimento.'); return; }
+  if (!(valorPlano >= 0)) { toast('Informe um valor de plano válido.'); return; }
+  if (jaPaga && !dataPagamento) { toast('Informe a data do pagamento.'); return; }
+
+  const competencia = `${compMes}-01`;
+  const a = AC_ALUNOS.find(x => x.id === acAluEditId);
+
+  const { data: existente } = await db.from('mensalidades')
+    .select('id, status').eq('aluno_id', acAluEditId).eq('competencia', competencia)
+    .neq('status', 'cancelado').maybeSingle();
+  if (existente) { toast(`Já existe fatura (${existente.status}) desse aluno nessa competência.`); return; }
+
+  const { data: mensalidade, error: eIns } = await db.from('mensalidades').insert({
+    academia_id: MEU_ACADEMIA_ID,
+    aluno_id: acAluEditId,
+    competencia,
+    valor_academia: valorPlano,
+    valor_personal: valorPersonal,
+    personal_id: a?.personal_id || null,
+    vencimento,
+    status: jaPaga ? 'pago' : 'pendente',
+  }).select().single();
+
+  if (eIns) { toast('Erro ao lançar: ' + eIns.message); return; }
+
+  const itens = [{ mensalidade_id: mensalidade.id, descricao: 'Plano (lançamento retroativo)', valor: valorPlano }];
+  if (valorPersonal > 0) itens.push({ mensalidade_id: mensalidade.id, descricao: 'Personal trainer', valor: valorPersonal });
+  await db.from('mensalidade_itens').insert(itens);
+
+  if (jaPaga) {
+    const { error: ePag } = await db.from('pagamentos').insert({
+      academia_id: MEU_ACADEMIA_ID,
+      mensalidade_id: mensalidade.id,
+      valor: valorPlano + valorPersonal,
+      pago_em: `${dataPagamento}T12:00:00`,
+      forma,
+    });
+    if (ePag) { toast('Mensalidade gravada, mas houve erro ao registrar o pagamento: ' + ePag.message); }
+  }
+
+  closeModal('m-mensalidade-retro-ac');
+  toast(`Mensalidade de ${fmt(competencia).slice(3)} lançada ✓`);
+  await carregarAlunosAc();
+  renderRetroNoModalAc(acAluEditId);
+}
+
+async function excluirMensalidadeRetroativaAc(mensalidadeId, alunoId) {
+  if (!confirm('Excluir esse lançamento retroativo?\n\nIsso remove a mensalidade e o pagamento vinculado — some do Dashboard, Financeiro e Participação. Use se lançou com valor/data errada e quer relançar certo.')) return;
+
+  // Ordem importa: pagamento e itens primeiro (dependem da mensalidade),
+  // só depois a mensalidade em si — senão trava por chave estrangeira.
+  const { error: e1 } = await db.from('pagamentos').delete().eq('mensalidade_id', mensalidadeId);
+  if (e1) { toast('Erro ao excluir pagamento vinculado: ' + e1.message); return; }
+
+  const { error: e2 } = await db.from('mensalidade_itens').delete().eq('mensalidade_id', mensalidadeId);
+  if (e2) { toast('Erro ao excluir itens vinculados: ' + e2.message); return; }
+
+  const { error: e3 } = await db.from('mensalidades').delete().eq('id', mensalidadeId);
+  if (e3) { toast('Erro ao excluir mensalidade: ' + e3.message); return; }
+
+  toast('Lançamento retroativo excluído ✓');
+  await carregarAlunosAc();
+  renderRetroNoModalAc(alunoId);
 }
