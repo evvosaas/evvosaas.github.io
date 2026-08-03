@@ -13,7 +13,7 @@ let AC_MODALIDADES_LISTA = [];
 let AC_EXTRAS_POR_ALUNO = {};
 let AC_ALERTA_FATURA_ATIVO = true;
 let AC_ALERTA_FATURA_DIAS = 10;
-let AC_ALUNOS_COM_FATURA_MES = new Set();
+let AC_COMPETENCIAS_COM_FATURA = new Map(); // aluno_id -> Set de competências ('AAAA-MM-01') já cobertas
 let acAluFiltro = 'todos';
 let acAluEditId = null;
 
@@ -24,6 +24,8 @@ async function carregarAlunosAc() {
 
   const hoje = new Date();
   const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+  const proximoMesDate = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  const competenciaProxima = `${proximoMesDate.getFullYear()}-${String(proximoMesDate.getMonth() + 1).padStart(2, '0')}-01`;
 
   const [{ data: planos }, { data: personais }, { data: alunos, error }, { data: modalidades }, { data: extras }, { data: cfgAlerta }, { data: mensalidadesMes }, { data: ajustesMes }] = await Promise.all([
     db.from('planos').select('*').eq('ativo', true).order('valor'),
@@ -32,8 +34,12 @@ async function carregarAlunosAc() {
     db.from('modalidades').select('*').eq('ativo', true).order('nome'),
     db.from('matriculas_extras').select('*, modalidades(nome)').eq('ativo', true),
     db.from('config').select('chave, valor').in('chave', ['alerta_fatura_ativo', 'alerta_fatura_dias']),
-    db.from('mensalidades').select('aluno_id').eq('competencia', competenciaAtual).neq('status', 'cancelado'),
-    db.from('ajustes_participacao').select('aluno_id').eq('competencia', competenciaAtual),
+    // Busca competência ATUAL e a PRÓXIMA — porque quando o dia de vencimento
+    // de um aluno já passou nesse mês, a fatura gerada é corretamente para o
+    // mês seguinte (mesma lógica da function). Sem isso, o alerta continuava
+    // achando que faltava gerar, mesmo já existindo a fatura certa.
+    db.from('mensalidades').select('aluno_id, competencia').in('competencia', [competenciaAtual, competenciaProxima]).neq('status', 'cancelado'),
+    db.from('ajustes_participacao').select('aluno_id, competencia').in('competencia', [competenciaAtual, competenciaProxima]),
   ]);
 
   if (error) { tb.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${esc(error.message)}</td></tr>`; return; }
@@ -51,10 +57,12 @@ async function carregarAlunosAc() {
   (cfgAlerta || []).forEach(c => { mapaAlerta[c.chave] = c.valor; });
   AC_ALERTA_FATURA_ATIVO = mapaAlerta['alerta_fatura_ativo'] !== 'false';
   AC_ALERTA_FATURA_DIAS = parseInt(mapaAlerta['alerta_fatura_dias']) || 10;
-  AC_ALUNOS_COM_FATURA_MES = new Set([
-    ...(mensalidadesMes || []).map(m => m.aluno_id),
-    ...(ajustesMes || []).map(a => a.aluno_id),
-  ]);
+
+  AC_COMPETENCIAS_COM_FATURA = new Map();
+  [...(mensalidadesMes || []), ...(ajustesMes || [])].forEach(row => {
+    if (!AC_COMPETENCIAS_COM_FATURA.has(row.aluno_id)) AC_COMPETENCIAS_COM_FATURA.set(row.aluno_id, new Set());
+    AC_COMPETENCIAS_COM_FATURA.get(row.aluno_id).add(row.competencia);
+  });
 
   if (!AC_PLANOS.length) {
     tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum plano cadastrado ainda — fale com o suporte Evvo para configurar os planos da sua academia.</td></tr>';
@@ -135,18 +143,26 @@ function renderAlunosAc() {
       return `<span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:10px;font-weight:700;margin:3px 4px 0 0;background:${cor}1f;color:${cor}">${esc(m.nome)}</span>`;
     }).join('');
 
-    // Alerta: dentro da janela configurada (ou já vencido) e ainda sem
-    // fatura gerada na competência atual.
+    // Alerta: calcula qual é a competência REALMENTE esperada pra esse aluno
+    // agora (igual à function de gerar fatura) — se o dia de vencimento já
+    // passou nesse mês, a competência certa é a do mês seguinte. Só avisa
+    // se essa competência específica ainda não tiver fatura/ajuste.
     let alertaFatura = '';
-    if (AC_ALERTA_FATURA_ATIVO && a.ativo !== false && a.dia_vencimento && !AC_ALUNOS_COM_FATURA_MES.has(a.id)) {
+    if (AC_ALERTA_FATURA_ATIVO && a.ativo !== false && a.dia_vencimento) {
       const hoje = new Date();
       const hojeSoData = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-      const alvo = new Date(hoje.getFullYear(), hoje.getMonth(), a.dia_vencimento);
-      const diasRestantes = Math.round((alvo - hojeSoData) / 86400000);
-      if (diasRestantes < 0) {
-        alertaFatura = `<div style="font-size:10px;font-weight:700;color:var(--late);margin-top:1px">Venceu há ${-diasRestantes} dia(s), sem fatura gerada</div>`;
-      } else if (diasRestantes <= AC_ALERTA_FATURA_DIAS) {
-        alertaFatura = `<div style="font-size:10px;font-weight:700;color:var(--warn);margin-top:1px">Faltam ${diasRestantes} dia(s) para o vencimento</div>`;
+      let alvo = new Date(hoje.getFullYear(), hoje.getMonth(), a.dia_vencimento);
+      if (alvo < hojeSoData) alvo = new Date(hoje.getFullYear(), hoje.getMonth() + 1, a.dia_vencimento);
+      const competenciaEsperada = `${alvo.getFullYear()}-${String(alvo.getMonth() + 1).padStart(2, '0')}-01`;
+      const jaTemFatura = (AC_COMPETENCIAS_COM_FATURA.get(a.id) || new Set()).has(competenciaEsperada);
+
+      if (!jaTemFatura) {
+        const diasRestantes = Math.round((alvo - hojeSoData) / 86400000);
+        if (diasRestantes < 0) {
+          alertaFatura = `<div style="font-size:10px;font-weight:700;color:var(--late);margin-top:1px">Venceu há ${-diasRestantes} dia(s), sem fatura gerada</div>`;
+        } else if (diasRestantes <= AC_ALERTA_FATURA_DIAS) {
+          alertaFatura = `<div style="font-size:10px;font-weight:700;color:var(--warn);margin-top:1px">Faltam ${diasRestantes} dia(s) para o vencimento</div>`;
+        }
       }
     }
 
@@ -357,7 +373,6 @@ async function salvarRenovacaoPlanoAc() {
   closeModal('m-renovar-plano-ac');
   toast('Plano renovado ✓');
 
-  // Atualiza a tela atual (Dashboard ou Relatórios), se a função existir
   if (typeof carregarDashboardAc === 'function' && document.getElementById('v-ac-dashboard')?.classList.contains('active')) {
     carregarDashboardAc();
   }
@@ -522,7 +537,6 @@ async function gerarFaturaAc(id) {
   if (a.ativo === false) { toast('Aluno inativo — reative antes de gerar fatura.'); return; }
   if (!a.cpf) { toast('Cadastre o CPF/CNPJ do aluno antes de gerar a fatura (exigência do banco emissor).'); return; }
 
-  // Se já existe fatura em aberto (pendente/atrasada), REABRE o modal dela
   const { data: aberta } = await db.from('mensalidades')
     .select('*')
     .eq('aluno_id', id)
