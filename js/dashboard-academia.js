@@ -121,7 +121,11 @@ async function carregarDashboardAc() {
       db.from('pagamentos').select('valor').gte('pago_em', dataInicio + 'T00:00:00'),
       db.from('cobrancas_avulsas').select('valor_total').eq('status', 'pago').gte('pago_em', dataInicio + 'T00:00:00'),
       db.from('outras_receitas').select('valor').eq('status', 'pago').gte('pago_em', dataInicio + 'T00:00:00'),
-      db.from('despesas').select('valor').gte('vencimento', dataInicio),
+      // Despesas: só as REALMENTE PAGAS (pago_em), diferente do resto do
+      // Dashboard/Financeiro que conta pelo vencimento (regime de competência,
+      // pra medir desempenho do período). Aqui é sobre dinheiro que já saiu
+      // de verdade da conta.
+      db.from('despesas').select('valor').eq('status', 'pago').gte('pago_em', dataInicio + 'T00:00:00'),
     ]);
 
     const entrouMensalidades = (pagosCaixa || []).reduce((s, p) => s + Number(p.valor), 0);
