@@ -60,7 +60,11 @@ async function carregarFinanceiroAc() {
       // guarda a observação da baixa manual mais recente daquela fatura (se houver)
       const obs = p.payload?.observacao;
       if (obs && !AC_FIN_OBS_POR_ID[p.mensalidade_id]) AC_FIN_OBS_POR_ID[p.mensalidade_id] = obs;
-      if (!p.asaas_event_id) AC_FIN_MANUAL_POR_ID[p.mensalidade_id] = true;
+      // Baixa manual (tela Financeiro) grava um asaas_event_id SINTÉTICO,
+      // tipo "manual-165-...". Mensalidade retroativa (lançada no cadastro
+      // do aluno) grava vazio. Os dois contam como "sem confirmação real
+      // do Asaas" — nenhum dos dois teve boleto/PIX pago de verdade.
+      if (!p.asaas_event_id || p.asaas_event_id.startsWith('manual-')) AC_FIN_MANUAL_POR_ID[p.mensalidade_id] = true;
     });
   }
 
