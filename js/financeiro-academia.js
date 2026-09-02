@@ -3,10 +3,16 @@
    v1.1 — KPI "Recebido no período" e a linha da fatura agora usam o
    valor EFETIVAMENTE recebido (tabela pagamentos), não o valor de
    face da fatura — corrige contabilização errada em baixas parciais.
+   v1.2 — Estorno de baixa manual: some com o registro de pagamento e
+   volta a fatura pro status certo (pendente/atrasado). Só aparece pra
+   faturas que NUNCA passaram por confirmação real do Asaas (identifica
+   pelo pagamento não ter asaas_event_id) — baixa manual de verdade,
+   nunca uma cobrança paga de fato pelo aluno via boleto/PIX.
    ============================================================ */
 let AC_FIN_LIST = [];
 let AC_FIN_RECEBIDO_POR_ID = {};
 let AC_FIN_OBS_POR_ID = {};
+let AC_FIN_MANUAL_POR_ID = {};
 let acFinFiltro = 'todos';
 let acFinFatSel = null;
 
@@ -38,13 +44,15 @@ async function carregarFinanceiroAc() {
   AC_FIN_LIST = data || [];
 
   // Para as faturas PAGAS, busca o valor EFETIVAMENTE recebido (baixa manual
-  // pode ter valor diferente do valor de face da fatura).
+  // pode ter valor diferente do valor de face da fatura), a observação e se
+  // veio de confirmação real do Asaas (asaas_event_id) ou de baixa manual.
   const idsPagos = AC_FIN_LIST.filter(m => m.status === 'pago').map(m => m.id);
   AC_FIN_RECEBIDO_POR_ID = {};
   AC_FIN_OBS_POR_ID = {};
+  AC_FIN_MANUAL_POR_ID = {};
   if (idsPagos.length) {
     const { data: pagos } = await db.from('pagamentos')
-      .select('mensalidade_id, valor, payload')
+      .select('mensalidade_id, valor, payload, asaas_event_id')
       .in('mensalidade_id', idsPagos)
       .order('pago_em', { ascending: false });
     (pagos || []).forEach(p => {
@@ -52,6 +60,7 @@ async function carregarFinanceiroAc() {
       // guarda a observação da baixa manual mais recente daquela fatura (se houver)
       const obs = p.payload?.observacao;
       if (obs && !AC_FIN_OBS_POR_ID[p.mensalidade_id]) AC_FIN_OBS_POR_ID[p.mensalidade_id] = obs;
+      if (!p.asaas_event_id) AC_FIN_MANUAL_POR_ID[p.mensalidade_id] = true;
     });
   }
 
@@ -96,6 +105,9 @@ function renderFinanceiroAc() {
     } else if (m.status === 'pago') {
       if (m.token_publico) acoes.push(`<a class="icon-btn" title="Abrir comprovante" href="${EVVO_CONFIG.PAGINA_FATURA || '#'}?t=${m.token_publico}" target="_blank" style="text-decoration:none">🔗</a>`);
       acoes.push(`<button class="icon-btn" title="Enviar recibo no WhatsApp" onclick="finReciboAc(${m.id})">🧾</button>`);
+      if (AC_FIN_MANUAL_POR_ID[m.id]) {
+        acoes.push(`<button class="icon-btn del" title="Estornar baixa manual" onclick="finEstornarAc(${m.id})">↩️</button>`);
+      }
     }
     return `
     <tr>
@@ -205,6 +217,40 @@ async function finSalvarBaixaAc() {
   }
   closeModal('m-baixa-ac');
   toast(data.msg || 'Baixa registrada ✓');
+  carregarFinanceiroAc();
+}
+
+/* ---------------- ESTORNAR BAIXA MANUAL ---------------- */
+async function finEstornarAc(id) {
+  const m = AC_FIN_LIST.find(x => x.id === id);
+  if (!m) return;
+  if (!AC_FIN_MANUAL_POR_ID[id]) {
+    toast('Essa fatura foi confirmada de verdade pelo Asaas — não é possível estornar por aqui.');
+    return;
+  }
+
+  const motivo = prompt(
+    `Estornar a baixa de ${brl(AC_FIN_RECEBIDO_POR_ID[id] ?? m.valor_total)} de ${m.aluno}?\n\n` +
+    `Isso apaga o registro de pagamento e volta a fatura pro status pendente/atrasado — sem gerar boleto/PIX novo. ` +
+    `Se o aluno precisar pagar de novo, será preciso gerar uma fatura nova depois.\n\n` +
+    `Motivo do estorno (opcional):`
+  );
+  if (motivo === null) return; // cancelou o prompt
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const novoStatus = m.vencimento < hoje ? 'atrasado' : 'pendente';
+
+  const { error: eDel } = await db.from('pagamentos').delete().eq('mensalidade_id', id);
+  if (eDel) { toast('Erro ao remover o pagamento: ' + eDel.message); return; }
+
+  const { error: eUpd } = await db.from('mensalidades').update({
+    status: novoStatus,
+    pago_em: null,
+    forma_pagamento: null,
+  }).eq('id', id);
+  if (eUpd) { toast('Pagamento removido, mas houve erro ao atualizar o status da fatura: ' + eUpd.message); return; }
+
+  toast(`Baixa estornada ✓ — fatura voltou pra "${novoStatus}"${motivo ? ' (' + motivo + ')' : ''}.`);
   carregarFinanceiroAc();
 }
 
