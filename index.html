@@ -4,10 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Evvo Master</title>
-<link rel="icon" type="image/png" href="assets/icons/favicon.png">
-<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#141418">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=38">
@@ -30,6 +32,7 @@
     <input id="lg-pass" type="password" placeholder="••••••••" autocomplete="current-password">
     <button class="btn-login" id="lg-btn" onclick="fazerLogin()">ENTRAR</button>
     <div class="login-erro" id="lg-erro"></div>
+    <button class="btn-instalar-pwa" onclick="instalarPwaEvvo()" style="display:none;width:100%;margin-top:14px;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:13px;cursor:pointer">📲 Instalar o Evvo neste computador</button>
   </div>
 </div>
 
@@ -55,7 +58,8 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.95<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <button class="btn-instalar-pwa" onclick="instalarPwaEvvo()" style="display:none;width:calc(100% - 24px);margin:0 12px 10px;padding:8px;border-radius:8px;border:1px solid #333;background:transparent;color:#fff;font-weight:700;font-size:11.5px;cursor:pointer">📲 Instalar app</button>
+  <div class="side-foot">Evvo · v5.96<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -250,7 +254,8 @@
     </div>
   </nav>
   <button class="btn-sair" onclick="sair()">⎋ <span>Sair</span></button>
-  <div class="side-foot">Evvo · v5.95<br>Desenvolvido por <b>Jhony Beraldo</b></div>
+  <button class="btn-instalar-pwa" onclick="instalarPwaEvvo()" style="display:none;width:calc(100% - 24px);margin:0 12px 10px;padding:8px;border-radius:8px;border:1px solid #333;background:transparent;color:#fff;font-weight:700;font-size:11.5px;cursor:pointer">📲 Instalar app</button>
+  <div class="side-foot">Evvo · v5.96<br>Desenvolvido por <b>Jhony Beraldo</b></div>
 </aside>
 
 <main>
@@ -1235,5 +1240,35 @@
 <script src="js/socios-academia.js?v=2"></script>
 <script src="js/config-academia.js?v=4"></script>
 <script src="js/relatorios-academia.js?v=9"></script>
+<script>
+  // ---------------- PWA: instalar como app (sem barra do navegador) ----------------
+  let evvoPwaPromptEvento = null;
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    evvoPwaPromptEvento = e;
+    document.querySelectorAll('.btn-instalar-pwa').forEach(b => b.style.display = 'block');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    evvoPwaPromptEvento = null;
+    document.querySelectorAll('.btn-instalar-pwa').forEach(b => b.style.display = 'none');
+    toast('Evvo instalado ✓ — já pode abrir direto pelo ícone, sem precisar do navegador.');
+  });
+
+  async function instalarPwaEvvo() {
+    if (!evvoPwaPromptEvento) { return; }
+    evvoPwaPromptEvento.prompt();
+    await evvoPwaPromptEvento.userChoice;
+    evvoPwaPromptEvento = null;
+    document.querySelectorAll('.btn-instalar-pwa').forEach(b => b.style.display = 'none');
+  }
+</script>
 </body>
 </html>
