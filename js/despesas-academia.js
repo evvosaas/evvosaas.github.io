@@ -77,7 +77,7 @@ function renderDespesasAc(receitaAcademia) {
 
   tb.innerHTML = lista.map(d => `
     <tr>
-      <td><b>${esc(d.descricao)}</b>${d.recorrente ? ' <span class="badge b-info" title="Lançada automaticamente todo mês">↻ recorrente</span>' : ''}</td>
+      <td><b>${esc(d.descricao)}</b>${d.recorrente ? ' <span class="badge b-info" title="Gerada em lote junto com os outros meses dessa despesa">↻ recorrente</span>' : ''}</td>
       <td><span class="badge b-off">${esc(d.categoria)}</span></td>
       <td>${fmt(d.vencimento)}</td>
       <td><b>${brl(d.valor)}</b></td>
@@ -102,7 +102,19 @@ function abrirDespesaAc(id) {
   document.getElementById('ac-md-valor').value = d ? Number(d.valor).toFixed(2) : '';
   document.getElementById('ac-md-venc').value = d?.vencimento || new Date().toISOString().slice(0, 10);
   document.getElementById('ac-md-rec').checked = d?.recorrente === true;
+  document.getElementById('ac-md-qtd-meses').value = 12;
+  acDespToggleRecorrente();
   openModal('m-despesa-ac');
+}
+
+function acDespToggleRecorrente() {
+  const rec = document.getElementById('ac-md-rec').checked;
+  // Só mostra "quantos meses gerar" pra despesa NOVA — editar uma despesa
+  // recorrente já existente não deve disparar geração em lote de novo.
+  document.getElementById('ac-md-qtd-wrap').style.display = (rec && !acDespEditId) ? '' : 'none';
+  document.getElementById('ac-md-nota-rec').textContent = acDespEditId
+    ? 'Editando um lançamento já existente — isso não regenera nem afeta os outros meses já criados.'
+    : 'Marcando recorrente, o sistema já cria os lançamentos dos próximos meses de uma vez (mesmo dia, mesmo valor) — não precisa relançar mês a mês.';
 }
 
 async function salvarDespesaAc() {
@@ -113,26 +125,48 @@ async function salvarDespesaAc() {
   if (valor <= 0)  { toast('Informe um valor válido.'); return; }
   if (!vencimento) { toast('Informe o vencimento.'); return; }
 
-  const registro = {
-    descricao,
-    categoria: document.getElementById('ac-md-cat').value,
-    valor,
-    vencimento,
-    recorrente: document.getElementById('ac-md-rec').checked,
-  };
+  const recorrente = document.getElementById('ac-md-rec').checked;
+  const categoria = document.getElementById('ac-md-cat').value;
+
+  const registro = { descricao, categoria, valor, vencimento, recorrente };
 
   let error;
   if (acDespEditId) {
     ({ error } = await db.from('despesas').update(registro).eq('id', acDespEditId));
-  } else {
-    registro.academia_id = MEU_ACADEMIA_ID;
-    ({ error } = await db.from('despesas').insert(registro));
+    if (error) { toast('Erro ao salvar: ' + error.message); return; }
+    closeModal('m-despesa-ac');
+    toast('Despesa atualizada ✓');
+    carregarDespesasAc();
+    return;
   }
 
+  // Despesa nova: grava a primeira, e se for recorrente, já gera as
+  // próximas N de uma vez (mesmo dia, mesmo valor) — em vez de só marcar
+  // uma etiqueta que nunca vira lançamento de verdade nos meses seguintes.
+  registro.academia_id = MEU_ACADEMIA_ID;
+  ({ error } = await db.from('despesas').insert(registro));
   if (error) { toast('Erro ao salvar: ' + error.message); return; }
+
+  let qtdGeradas = 0;
+  if (recorrente) {
+    const qtdMeses = parseInt(document.getElementById('ac-md-qtd-meses').value) || 12;
+    const futuras = [];
+    for (let i = 1; i < qtdMeses; i++) {
+      futuras.push({
+        academia_id: MEU_ACADEMIA_ID,
+        descricao, categoria, valor, recorrente: true,
+        vencimento: calcVencimentoPlano(vencimento, i),
+      });
+    }
+    if (futuras.length) {
+      const { error: eFut } = await db.from('despesas').insert(futuras);
+      if (eFut) { toast('Despesa lançada, mas houve erro ao gerar os próximos meses: ' + eFut.message); carregarDespesasAc(); return; }
+      qtdGeradas = futuras.length;
+    }
+  }
+
   closeModal('m-despesa-ac');
-  toast(acDespEditId ? 'Despesa atualizada ✓' : 'Despesa lançada ✓' +
-    (registro.recorrente ? ' — será replicada automaticamente todo mês.' : ''));
+  toast(recorrente ? `Despesa lançada ✓ — mais ${qtdGeradas} mês(es) seguinte(s) já gerado(s).` : 'Despesa lançada ✓');
   carregarDespesasAc();
 }
 
@@ -152,7 +186,7 @@ async function excluirDespesaAc(id) {
   const d = AC_DESP_LIST.find(x => x.id === id);
   if (!d) return;
   const extra = d.recorrente
-    ? '\n\nAtenção: esta despesa é RECORRENTE — excluir este lançamento também interrompe a replicação automática dos próximos meses.'
+    ? '\n\nEsta despesa é recorrente — mas excluir esse lançamento afeta só ESSE mês. Os outros meses já gerados continuam intactos (exclua um por um, se quiser remover vários).'
     : '';
   if (!confirm(`Excluir a despesa "${d.descricao}" (${brl(d.valor)})?${extra}`)) return;
   const { error } = await db.from('despesas').delete().eq('id', id);
